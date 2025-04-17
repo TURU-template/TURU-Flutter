@@ -10,8 +10,21 @@ void main() {
 class TuruColors {
   static const Color primaryBackground = Color(0xFF02021D);
   static const Color navbarBackground = Color(0xFF08082F);
-  static const Color textColor = Colors.white;
+
+  static const Color textColor = Color(0xFFFFFFFF);
+  static const Color textColor2 = Color(0xFF8E8E8E);
+  static const Color textBlack = Color(0xFF000000);
+
+  static const Color lilac = Color(0xFF2B194F);
+  static const Color indigo = Color(0xFF514FC2);
+  static const Color biscay = Color(0xFF18306D);
+  static const Color blue = Color(0xFF35A4DA);
+  static const Color purple = Color(0xFF8C4FC2);
+  static const Color pink = Color(0xFFDA5798);
+  static const Color backdrop = Color(0xFF151619);
+  static const Color button = Color(0xFF007BFF);
 }
+
 
 class TuruApp extends StatelessWidget {
   const TuruApp({super.key});
