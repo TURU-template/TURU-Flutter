@@ -3,10 +3,17 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:audioplayers/audioplayers.dart';
 import '../main.dart';
 
-class RadioPage extends StatelessWidget {
-  RadioPage({super.key});
+class RadioPage extends StatefulWidget {
+  const RadioPage({super.key});
 
+  @override
+  State<RadioPage> createState() => _RadioPageState();
+}
+
+class _RadioPageState extends State<RadioPage> {
   final AudioPlayer _audioPlayer = AudioPlayer();
+  String? _currentPlaying;
+  bool _isPlaying = false;
 
   final Map<String, String> soundSources = {
     // Derau Warna
@@ -28,29 +35,56 @@ class RadioPage extends StatelessWidget {
     'Yasumu': 'songs/Yasumu.mp3',
   };
 
-  Widget _buildAudioButton(String label, String emoji, Color color) {
+  @override
+  void initState() {
+    super.initState();
+    // Set the release mode to loop by default
+    _audioPlayer.setReleaseMode(ReleaseMode.loop);
+  }
+
+  Widget _buildAudioButton(String label, String emoji, Color activeColor) {
+    final bool isCurrentlyPlaying = _currentPlaying == label && _isPlaying;
+    final Color buttonColor = isCurrentlyPlaying ? activeColor : Colors.white;
+    final Color textColor = isCurrentlyPlaying ? Colors.white : activeColor;
+    final BorderSide borderSide = BorderSide(color: activeColor, width: 1.0);
+
     return ConstrainedBox(
       constraints: const BoxConstraints(maxWidth: 300),
       child: ElevatedButton(
         onPressed: () async {
           String? path = soundSources[label];
           if (path != null) {
-            await _audioPlayer.stop();
-            await _audioPlayer.play(AssetSource(path));
+            if (_isPlaying && _currentPlaying == label) {
+              await _audioPlayer.stop();
+              setState(() {
+                _isPlaying = false;
+                _currentPlaying = null;
+              });
+            } else {
+              await _audioPlayer.stop();
+              // Set or confirm loop mode before playing
+              await _audioPlayer.setReleaseMode(ReleaseMode.loop);
+              await _audioPlayer.play(AssetSource(path));
+              setState(() {
+                _isPlaying = true;
+                _currentPlaying = label;
+              });
+            }
           }
         },
         style: ElevatedButton.styleFrom(
-          backgroundColor: color,
-          foregroundColor: Colors.white,
+          backgroundColor: buttonColor,
+          foregroundColor: textColor,
           padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 24),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(8),
+            side: !isCurrentlyPlaying ? borderSide : BorderSide.none,
           ),
-          elevation: 3,
+          elevation: isCurrentlyPlaying ? 3 : 0,
         ),
         child: Text(
           '$label $emoji',
-          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
         ),
       ),
     );
@@ -69,6 +103,12 @@ class RadioPage extends StatelessWidget {
         const SizedBox(height: 28),
       ],
     );
+  }
+
+  @override
+  void dispose() {
+    _audioPlayer.dispose();
+    super.dispose();
   }
 
   @override
