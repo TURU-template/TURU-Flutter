@@ -33,9 +33,12 @@ class TuruApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      theme: ThemeData.dark(),
+      theme: ThemeData.dark().copyWith(
+        textTheme: ThemeData.dark().textTheme.apply(fontFamily: 'OpenSans'),
+      ),
       home: const MainScreen(),
     );
+
   }
 }
 
@@ -51,7 +54,7 @@ class _MainScreenState extends State<MainScreen> {
 
   final List<Widget> _pages = [
     const BerandaPage(),
-    const RadioPage(),
+    RadioPage(),
     const ProfilPage(),
   ];
 

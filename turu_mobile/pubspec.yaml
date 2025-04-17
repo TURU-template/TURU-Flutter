@@ -30,7 +30,8 @@ environment:
 dependencies:
   flutter_svg: ^2.0.7
   google_fonts: ^6.1.0
-  
+  audioplayers: ^6.4.0
+
   flutter:
     sdk: flutter
 
@@ -73,6 +74,15 @@ flutter:
     - assets/images/BG_Beranda.svg
     - assets/images/BG_Radio.svg
     - assets/images/LOGO_Turu.png
+
+    - assets/songs/Jangkrik.mp3
+    - assets/songs/Ombak.mp3
+    - assets/songs/Api.mp3
+    - assets/songs/Hujan.mp3
+    - assets/songs/Burung.mp3
+    - assets/songs/Twilight.mp3
+    - assets/songs/Monoman.mp3
+    - assets/songs/Yasumu.mp3
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

@@ -1,50 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:audioplayers/audioplayers.dart';
 import '../main.dart';
 
 class RadioPage extends StatelessWidget {
-  RadioPage({super.key});
-
-  final AudioPlayer _audioPlayer = AudioPlayer();
-
-  final Map<String, String> soundSources = {
-    // Derau Warna
-    'White': 'songs/noise_white.mp3',
-    'Blue': 'songs/noise_blue.mp3',
-    'Brown': 'songs/noise_brown.mp3',
-    'Pink': 'songs/noise_pink.mp3',
-
-    // Suara Ambiens
-    'Api': 'songs/Api.mp3',
-    'Ombak': 'songs/Ombak.mp3',
-    'Burung': 'songs/burung.mp3',
-    'Jangkrik': 'songs/Jangkrik.mp3',
-    'Hujan': 'songs/Hujan.mp3',
-
-    // Lo-Fi Music
-    'Monoman': 'songs/Monoman.mp3',
-    'Twilight': 'songs/Twilight.mp3',
-    'Yasumu': 'songs/Yasumu.mp3',
-  };
+  const RadioPage({super.key});
 
   Widget _buildAudioButton(String label, String emoji, Color color) {
     return ConstrainedBox(
       constraints: const BoxConstraints(maxWidth: 300),
       child: ElevatedButton(
-        onPressed: () async {
-          String? path = soundSources[label];
-          if (path != null) {
-            await _audioPlayer.stop();
-            await _audioPlayer.play(AssetSource(path));
-          }
-        },
+        onPressed: () {},
         style: ElevatedButton.styleFrom(
           backgroundColor: color,
           foregroundColor: Colors.white,
-          padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 24),
+          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.circular(16),
           ),
           elevation: 3,
         ),
@@ -88,10 +59,7 @@ class RadioPage extends StatelessWidget {
           // Foreground Content
           SafeArea(
             child: Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 48,
-                vertical: 100,
-              ),
+              padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
               child: Column(
                 children: [
                   Expanded(
@@ -147,8 +115,8 @@ class RadioPage extends StatelessWidget {
             bottom: 80,
             right: 20,
             child: SizedBox(
-              width: 80,
-              height: 80,
+              width: 72,
+              height: 88,
               child: FloatingActionButton(
                 backgroundColor: TuruColors.pink,
                 onPressed: () {
