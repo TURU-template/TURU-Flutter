@@ -25,7 +25,7 @@ class _RadioPageState extends State<RadioPage> {
     // Suara Ambiens
     'Api': 'songs/Api.mp3',
     'Ombak': 'songs/Ombak.mp3',
-    'Burung': 'songs/burung.mp3',
+    'Burung': 'songs/Burung.mp3',
     'Jangkrik': 'songs/Jangkrik.mp3',
     'Hujan': 'songs/Hujan.mp3',
 
@@ -48,49 +48,45 @@ class _RadioPageState extends State<RadioPage> {
     final Color textColor = isCurrentlyPlaying ? Colors.white : activeColor;
     final BorderSide borderSide = BorderSide(color: activeColor, width: 1.0);
 
-    return ConstrainedBox(
-      constraints: const BoxConstraints(maxWidth: 300),
-      child: ElevatedButton(
-        onPressed: () async {
-          String? path = soundSources[label];
-          if (path != null) {
-            if (_isPlaying && _currentPlaying == label) {
-              await _audioPlayer.stop();
-              setState(() {
-                _isPlaying = false;
-                _currentPlaying = null;
-              });
-            } else {
-              await _audioPlayer.stop();
-              // Set or confirm loop mode before playing
-              await _audioPlayer.setReleaseMode(ReleaseMode.loop);
-              await _audioPlayer.play(AssetSource(path));
-              setState(() {
-                _isPlaying = true;
-                _currentPlaying = label;
-              });
-            }
+    return ElevatedButton(
+      onPressed: () async {
+        String? path = soundSources[label];
+        if (path != null) {
+          if (_isPlaying && _currentPlaying == label) {
+            await _audioPlayer.stop();
+            setState(() {
+              _isPlaying = false;
+              _currentPlaying = null;
+            });
+          } else {
+            await _audioPlayer.stop();
+            await _audioPlayer.setReleaseMode(ReleaseMode.loop);
+            await _audioPlayer.play(AssetSource(path));
+            setState(() {
+              _isPlaying = true;
+              _currentPlaying = label;
+            });
           }
-        },
-        style: ElevatedButton.styleFrom(
-          backgroundColor: buttonColor,
-          foregroundColor: textColor,
-          padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 24),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(8),
-            side: !isCurrentlyPlaying ? borderSide : BorderSide.none,
-          ),
-          elevation: isCurrentlyPlaying ? 3 : 0,
+        }
+      },
+      style: ElevatedButton.styleFrom(
+        backgroundColor: buttonColor,
+        foregroundColor: textColor,
+        padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 20),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8),
+          side: !isCurrentlyPlaying ? borderSide : BorderSide.none,
         ),
-        child: Text(
-          '$label $emoji',
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-        ),
+        elevation: isCurrentlyPlaying ? 3 : 0,
+      ),
+      child: Text(
+        '$label $emoji',
+        style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
       ),
     );
   }
 
-  Widget _buildSection(String title, List<Widget> buttons) {
+  Widget _buildSection(String title, List<Map<String, dynamic>> buttons) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -99,7 +95,24 @@ class _RadioPageState extends State<RadioPage> {
           style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 12),
-        Wrap(spacing: 12, runSpacing: 12, children: buttons),
+        GridView.builder(
+          physics: const NeverScrollableScrollPhysics(),
+          shrinkWrap: true,
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: MediaQuery.of(context).size.width > 600 ? 3 : 2,
+            childAspectRatio: 2.5,
+            crossAxisSpacing: 10,
+            mainAxisSpacing: 10,
+          ),
+          itemCount: buttons.length,
+          itemBuilder: (context, index) {
+            return _buildAudioButton(
+              buttons[index]['label'],
+              buttons[index]['emoji'],
+              buttons[index]['color'],
+            );
+          },
+        ),
         const SizedBox(height: 28),
       ],
     );
@@ -113,6 +126,27 @@ class _RadioPageState extends State<RadioPage> {
 
   @override
   Widget build(BuildContext context) {
+    final List<Map<String, dynamic>> derauButtons = [
+      {'label': 'White', 'emoji': '⚪', 'color': TuruColors.purple},
+      {'label': 'Blue', 'emoji': '🔵', 'color': TuruColors.blue},
+      {'label': 'Brown', 'emoji': '🟤', 'color': TuruColors.indigo},
+      {'label': 'Pink', 'emoji': '🩷', 'color': TuruColors.pink},
+    ];
+
+    final List<Map<String, dynamic>> ambiensButtons = [
+      {'label': 'Api', 'emoji': '🔥', 'color': TuruColors.pink},
+      {'label': 'Ombak', 'emoji': '🌊', 'color': TuruColors.blue},
+      {'label': 'Burung', 'emoji': '🐦', 'color': TuruColors.indigo},
+      {'label': 'Jangkrik', 'emoji': '🦗', 'color': TuruColors.lilac},
+      {'label': 'Hujan', 'emoji': '🌧️', 'color': TuruColors.biscay},
+    ];
+
+    final List<Map<String, dynamic>> lofiButtons = [
+      {'label': 'Monoman', 'emoji': '🎸', 'color': TuruColors.blue},
+      {'label': 'Twilight', 'emoji': '🎵', 'color': TuruColors.indigo},
+      {'label': 'Yasumu', 'emoji': '🎹', 'color': TuruColors.pink},
+    ];
+
     return Scaffold(
       body: Stack(
         children: [
@@ -121,16 +155,17 @@ class _RadioPageState extends State<RadioPage> {
             child: SvgPicture.asset(
               'assets/images/BG_Radio.svg',
               fit: BoxFit.cover,
-              alignment: Alignment.topCenter,
             ),
           ),
 
           // Foreground Content
           SafeArea(
             child: Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 48,
-                vertical: 100,
+              padding: const EdgeInsets.only(
+                left: 24,
+                right: 24,
+                top: 60,
+                bottom: 24,
               ),
               child: Column(
                 children: [
@@ -139,40 +174,9 @@ class _RadioPageState extends State<RadioPage> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          _buildSection("Derau Warna", [
-                            _buildAudioButton("White", "⚪", TuruColors.purple),
-                            _buildAudioButton("Blue", "🔵", TuruColors.blue),
-                            _buildAudioButton("Brown", "🟤", TuruColors.indigo),
-                            _buildAudioButton("Pink", "🩷", TuruColors.pink),
-                          ]),
-                          _buildSection("Suara Ambiens", [
-                            _buildAudioButton("Api", "🔥", TuruColors.pink),
-                            _buildAudioButton("Ombak", "🌊", TuruColors.blue),
-                            _buildAudioButton(
-                              "Burung",
-                              "🐦",
-                              TuruColors.indigo,
-                            ),
-                            _buildAudioButton(
-                              "Jangkrik",
-                              "🦗",
-                              TuruColors.lilac,
-                            ),
-                            _buildAudioButton(
-                              "Hujan",
-                              "🌧️",
-                              TuruColors.biscay,
-                            ),
-                          ]),
-                          _buildSection("Lo-Fi Music", [
-                            _buildAudioButton("Monoman", "🎸", TuruColors.blue),
-                            _buildAudioButton(
-                              "Twilight",
-                              "🎵",
-                              TuruColors.indigo,
-                            ),
-                            _buildAudioButton("Yasumu", "🎹", TuruColors.pink),
-                          ]),
+                          _buildSection("Derau Warna", derauButtons),
+                          _buildSection("Suara Ambiens", ambiensButtons),
+                          _buildSection("Lo-Fi Music", lofiButtons),
                         ],
                       ),
                     ),

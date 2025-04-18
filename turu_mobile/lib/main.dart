@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:bootstrap_icons/bootstrap_icons.dart';
 import 'beranda_page.dart';
 import 'radio_page.dart';
@@ -25,7 +26,6 @@ class TuruColors {
   static const Color pink = Color(0xFFDA5798);
   static const Color backdrop = Color(0xFF151619);
   static const Color button = Color(0xFF007BFF);
-
 }
 
 class TuruApp extends StatelessWidget {
@@ -33,10 +33,16 @@ class TuruApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Apply Open Sans to the entire app
+    final openSansTextTheme = GoogleFonts.openSansTextTheme(
+      ThemeData.dark().textTheme,
+    );
+
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       theme: ThemeData.dark().copyWith(
-        textTheme: ThemeData.dark().textTheme.apply(fontFamily: 'OpenSans'),
+        textTheme: openSansTextTheme,
+        primaryTextTheme: openSansTextTheme,
         splashFactory: NoSplash.splashFactory,
         highlightColor: Colors.transparent,
       ),
@@ -57,7 +63,7 @@ class _MainScreenState extends State<MainScreen> {
 
   final List<Widget> _pages = [
     const BerandaPage(),
-    RadioPage(),
+    const RadioPage(),
     const ProfilPage(),
   ];
 

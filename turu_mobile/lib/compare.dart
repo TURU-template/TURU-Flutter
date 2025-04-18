@@ -35,6 +35,13 @@ class _RadioPageState extends State<RadioPage> {
     'Yasumu': 'songs/Yasumu.mp3',
   };
 
+  @override
+  void initState() {
+    super.initState();
+    // Set the release mode to loop by default
+    _audioPlayer.setReleaseMode(ReleaseMode.loop);
+  }
+
   Widget _buildAudioButton(String label, String emoji, Color activeColor) {
     final bool isCurrentlyPlaying = _currentPlaying == label && _isPlaying;
     final Color buttonColor = isCurrentlyPlaying ? activeColor : Colors.white;
@@ -55,10 +62,9 @@ class _RadioPageState extends State<RadioPage> {
               });
             } else {
               await _audioPlayer.stop();
-              await _audioPlayer.play(
-                AssetSource(path),
-                loopMode: LoopMode.loop,
-              );
+              // Set or confirm loop mode before playing
+              await _audioPlayer.setReleaseMode(ReleaseMode.loop);
+              await _audioPlayer.play(AssetSource(path));
               setState(() {
                 _isPlaying = true;
                 _currentPlaying = label;
