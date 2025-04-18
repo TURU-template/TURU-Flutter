@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'beranda_page.dart';
 import 'radio_page.dart';
 import 'profil_page.dart';
+import 'login_page.dart';
 
 void main() {
   runApp(const TuruApp());
@@ -25,7 +26,6 @@ class TuruColors {
   static const Color button = Color(0xFF007BFF);
 }
 
-
 class TuruApp extends StatelessWidget {
   const TuruApp({super.key});
 
@@ -36,9 +36,9 @@ class TuruApp extends StatelessWidget {
       theme: ThemeData.dark().copyWith(
         textTheme: ThemeData.dark().textTheme.apply(fontFamily: 'OpenSans'),
       ),
-      home: const MainScreen(),
+      home: const LoginPage(), // Change initial route to LoginPage
+      routes: {'/main': (context) => const MainScreen()},
     );
-
   }
 }
 
