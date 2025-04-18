@@ -1,27 +1,84 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:audioplayers/audioplayers.dart';
 import '../main.dart';
 
-class RadioPage extends StatelessWidget {
+class RadioPage extends StatefulWidget {
   const RadioPage({super.key});
 
-  Widget _buildAudioButton(String label, String emoji, Color color) {
+  @override
+  State<RadioPage> createState() => _RadioPageState();
+}
+
+class _RadioPageState extends State<RadioPage> {
+  final AudioPlayer _audioPlayer = AudioPlayer();
+  String? _currentPlaying;
+  bool _isPlaying = false;
+
+  final Map<String, String> soundSources = {
+    // Derau Warna
+    'White': 'songs/noise_white.mp3',
+    'Blue': 'songs/noise_blue.mp3',
+    'Brown': 'songs/noise_brown.mp3',
+    'Pink': 'songs/noise_pink.mp3',
+
+    // Suara Ambiens
+    'Api': 'songs/Api.mp3',
+    'Ombak': 'songs/Ombak.mp3',
+    'Burung': 'songs/burung.mp3',
+    'Jangkrik': 'songs/Jangkrik.mp3',
+    'Hujan': 'songs/Hujan.mp3',
+
+    // Lo-Fi Music
+    'Monoman': 'songs/Monoman.mp3',
+    'Twilight': 'songs/Twilight.mp3',
+    'Yasumu': 'songs/Yasumu.mp3',
+  };
+
+  Widget _buildAudioButton(String label, String emoji, Color activeColor) {
+    final bool isCurrentlyPlaying = _currentPlaying == label && _isPlaying;
+    final Color buttonColor = isCurrentlyPlaying ? activeColor : Colors.white;
+    final Color textColor = isCurrentlyPlaying ? Colors.white : activeColor;
+    final BorderSide borderSide = BorderSide(color: activeColor, width: 1.0);
+
     return ConstrainedBox(
       constraints: const BoxConstraints(maxWidth: 300),
       child: ElevatedButton(
-        onPressed: () {},
+        onPressed: () async {
+          String? path = soundSources[label];
+          if (path != null) {
+            if (_isPlaying && _currentPlaying == label) {
+              await _audioPlayer.stop();
+              setState(() {
+                _isPlaying = false;
+                _currentPlaying = null;
+              });
+            } else {
+              await _audioPlayer.stop();
+              await _audioPlayer.play(
+                AssetSource(path),
+                loopMode: LoopMode.loop,
+              );
+              setState(() {
+                _isPlaying = true;
+                _currentPlaying = label;
+              });
+            }
+          }
+        },
         style: ElevatedButton.styleFrom(
-          backgroundColor: color,
-          foregroundColor: Colors.white,
-          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
+          backgroundColor: buttonColor,
+          foregroundColor: textColor,
+          padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 24),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(8),
+            side: !isCurrentlyPlaying ? borderSide : BorderSide.none,
           ),
-          elevation: 3,
+          elevation: isCurrentlyPlaying ? 3 : 0,
         ),
         child: Text(
           '$label $emoji',
-          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
         ),
       ),
     );
@@ -43,6 +100,12 @@ class RadioPage extends StatelessWidget {
   }
 
   @override
+  void dispose() {
+    _audioPlayer.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: Stack(
@@ -59,7 +122,10 @@ class RadioPage extends StatelessWidget {
           // Foreground Content
           SafeArea(
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 48,
+                vertical: 100,
+              ),
               child: Column(
                 children: [
                   Expanded(
@@ -115,8 +181,8 @@ class RadioPage extends StatelessWidget {
             bottom: 80,
             right: 20,
             child: SizedBox(
-              width: 72,
-              height: 88,
+              width: 80,
+              height: 80,
               child: FloatingActionButton(
                 backgroundColor: TuruColors.pink,
                 onPressed: () {

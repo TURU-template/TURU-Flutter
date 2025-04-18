@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:bootstrap_icons/bootstrap_icons.dart';
 import 'beranda_page.dart';
 import 'radio_page.dart';
 import 'profil_page.dart';
@@ -18,13 +19,14 @@ class TuruColors {
   static const Color lilac = Color(0xFF2B194F);
   static const Color indigo = Color(0xFF514FC2);
   static const Color biscay = Color(0xFF18306D);
+  static const Color darkblue = Color(0xFF0D1A36);
   static const Color blue = Color(0xFF35A4DA);
   static const Color purple = Color(0xFF8C4FC2);
   static const Color pink = Color(0xFFDA5798);
   static const Color backdrop = Color(0xFF151619);
   static const Color button = Color(0xFF007BFF);
-}
 
+}
 
 class TuruApp extends StatelessWidget {
   const TuruApp({super.key});
@@ -35,10 +37,11 @@ class TuruApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: ThemeData.dark().copyWith(
         textTheme: ThemeData.dark().textTheme.apply(fontFamily: 'OpenSans'),
+        splashFactory: NoSplash.splashFactory,
+        highlightColor: Colors.transparent,
       ),
       home: const MainScreen(),
     );
-
   }
 }
 
@@ -68,22 +71,69 @@ class _MainScreenState extends State<MainScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: TuruColors.primaryBackground,
-
       body: SafeArea(
         child: IndexedStack(index: _selectedIndex, children: _pages),
       ),
-      bottomNavigationBar: BottomNavigationBar(
-        backgroundColor: TuruColors.navbarBackground,
-        selectedItemColor: Colors.white,
-        unselectedItemColor: Colors.grey,
-        currentIndex: _selectedIndex,
-        onTap: _onItemTapped,
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Beranda'),
-          BottomNavigationBarItem(icon: Icon(Icons.radio), label: 'Radio'),
-          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profil'),
+      bottomNavigationBar: SizedBox(
+        height: 80,
+        child: BottomNavigationBar(
+          backgroundColor: TuruColors.navbarBackground,
+          selectedItemColor: TuruColors.indigo,
+          unselectedItemColor: Colors.white,
+          currentIndex: _selectedIndex,
+          onTap: _onItemTapped,
+          elevation: 8,
+          type: BottomNavigationBarType.fixed,
+          showUnselectedLabels: true,
+          selectedFontSize: 13,
+          unselectedFontSize: 13,
+          selectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold),
+          unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold),
+          items: [
+            _navItem(
+              icon: BootstrapIcons.grid_fill,
+              label: 'Beranda',
+              index: 0,
+            ),
+            _navItem(icon: BootstrapIcons.music_note, label: 'Radio', index: 1),
+            _navItem(
+              icon: BootstrapIcons.person_fill,
+              label: 'Profil',
+              index: 2,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  BottomNavigationBarItem _navItem({
+    required IconData icon,
+    required String label,
+    required int index,
+  }) {
+    final isActive = _selectedIndex == index;
+    return BottomNavigationBarItem(
+      icon: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (isActive)
+            Container(
+              width: 24,
+              height: 3,
+              margin: const EdgeInsets.only(bottom: 6),
+              decoration: BoxDecoration(
+                color: TuruColors.indigo,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            )
+          else
+            const SizedBox(height: 7),
+          Icon(icon),
+          const SizedBox(height: 6),
         ],
       ),
+      label: label,
     );
   }
 }

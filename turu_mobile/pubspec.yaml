@@ -31,6 +31,7 @@ dependencies:
   flutter_svg: ^2.0.7
   google_fonts: ^6.1.0
   audioplayers: ^6.4.0
+  bootstrap_icons: ^1.10.5
 
   flutter:
     sdk: flutter
