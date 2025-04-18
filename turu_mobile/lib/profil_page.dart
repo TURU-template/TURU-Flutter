@@ -37,6 +37,9 @@ class ProfilPage extends StatelessWidget {
                       style: TextButton.styleFrom(
                         foregroundColor: Colors.white,
                         backgroundColor: Colors.grey[700],
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
                       ),
                       child: const Text("Batalkan"),
                     ),
@@ -48,6 +51,9 @@ class ProfilPage extends StatelessWidget {
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: TuruColors.pink,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
                       ),
                       child: const Text(
                         "Konfirmasi",
@@ -65,11 +71,10 @@ class ProfilPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(24.0),
+      padding: const EdgeInsets.symmetric(horizontal: 32),
       child: Column(
         children: [
-          const SizedBox(height: 24),
-
+          const SizedBox(height: 64),
           const CircleAvatar(
             radius: 50,
             backgroundImage: AssetImage('assets/images/LOGO_Turu.png'),
@@ -81,7 +86,7 @@ class ProfilPage extends StatelessWidget {
                 Text(
                   'Nama Pengguna',
                   style: TextStyle(
-                    fontSize: 22,
+                    fontSize: 24,
                     fontWeight: FontWeight.bold,
                     color: Colors.white,
                   ),
@@ -94,9 +99,7 @@ class ProfilPage extends StatelessWidget {
               ],
             ),
           ),
-
           const SizedBox(height: 72),
-
           const Align(
             alignment: Alignment.centerLeft,
             child: Text(
@@ -109,7 +112,6 @@ class ProfilPage extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 8),
-
           _settingItem(
             icon: BootstrapIcons.trash,
             label: 'Hapus Rekaman Tidur',
@@ -127,7 +129,6 @@ class ProfilPage extends StatelessWidget {
                   },
                 ),
           ),
-
           _settingItem(
             icon: BootstrapIcons.box_arrow_right,
             label: 'Keluar Akun',
