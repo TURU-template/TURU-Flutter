@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:bootstrap_icons/bootstrap_icons.dart';
-import 'beranda_page.dart';
-import 'radio_page.dart';
-import 'profil_page.dart';
-import 'login_page.dart';
+import 'pages/beranda.dart';
+import 'pages/radio.dart';
+import 'pages/profil.dart';
+import 'pages/login.dart';
 
 void main() {
   runApp(const TuruApp());

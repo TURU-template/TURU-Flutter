@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:bootstrap_icons/bootstrap_icons.dart';
-import '../main.dart';
+import '../../main.dart';
 
 class ProfilPage extends StatelessWidget {
   const ProfilPage({super.key});

@@ -11,12 +11,8 @@ class EditProfilPage extends StatelessWidget {
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            TextField(
-              decoration: const InputDecoration(labelText: 'Nama'),
-            ),
-            TextField(
-              decoration: const InputDecoration(labelText: 'Email'),
-            ),
+            TextField(decoration: const InputDecoration(labelText: 'Nama')),
+            TextField(decoration: const InputDecoration(labelText: 'Email')),
             const SizedBox(height: 20),
             ElevatedButton(
               onPressed: () {

@@ -26,11 +26,12 @@ class _LoginPageState extends State<LoginPage> {
 
     // Inisialisasi koneksi database Aiven
     _dbService = DatabaseService(
-      host: 'YOUR_AIVEN_HOST', // Ganti dengan host Aiven PostgreSQL Anda
-      port: 12345, // Ganti dengan port yang benar
-      database: 'defaultdb', // Sesuaikan dengan nama database Anda
-      username: 'avnadmin', // Sesuaikan dengan username Aiven Anda
-      password: 'YOUR_PASSWORD', // Ganti dengan password Aiven Anda
+      host:
+          'turumysql-turuproject.e.aivencloud.com', // Ganti dengan host Aiven PostgreSQL Anda
+      port: 0, // harusnya ga disini, nanti ku perbaiki
+      database: '', // harusnya ga disini, nanti ku perbaiki
+      username: '', // harusnya ga disini, nanti ku perbaiki
+      password: '', // harusnya ga disini, nanti ku perbaiki
     );
 
     _authService = AuthService(_dbService);
@@ -82,6 +83,12 @@ class _LoginPageState extends State<LoginPage> {
         _isLoading = false;
       });
     }
+  }
+
+  // Method untuk login sebagai tamu
+  void _loginAsGuest() {
+    // Langsung navigasi ke MainScreen tanpa autentikasi
+    _navigateToMainScreen();
   }
 
   void _navigateToMainScreen() {
@@ -206,6 +213,25 @@ class _LoginPageState extends State<LoginPage> {
                       ),
                       child: const Text(
                         'Belum Punya Akun',
+                        style: TextStyle(fontSize: 18, color: Colors.white),
+                      ),
+                    ),
+                  ),
+                  // Tombol Login as Guest
+                  const SizedBox(height: 16),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 50,
+                    child: ElevatedButton(
+                      onPressed: _isLoading ? null : _loginAsGuest,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.grey[700],
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      child: const Text(
+                        'Login as Guest',
                         style: TextStyle(fontSize: 18, color: Colors.white),
                       ),
                     ),

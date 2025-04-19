@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:audioplayers/audioplayers.dart';
-import '../main.dart';
+import '../../main.dart';
 
 class RadioPage extends StatefulWidget {
   const RadioPage({super.key});
