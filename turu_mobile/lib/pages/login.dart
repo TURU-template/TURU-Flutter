@@ -24,14 +24,13 @@ class _LoginPageState extends State<LoginPage> {
   void initState() {
     super.initState();
 
-    // Inisialisasi koneksi database Aiven
+    // Updated connection to local MySQL server
     _dbService = DatabaseService(
-      host:
-          'turumysql-turuproject.e.aivencloud.com', // Ganti dengan host Aiven PostgreSQL Anda
-      port: 0, // harusnya ga disini, nanti ku perbaiki
-      database: '', // harusnya ga disini, nanti ku perbaiki
-      username: '', // harusnya ga disini, nanti ku perbaiki
-      password: '', // harusnya ga disini, nanti ku perbaiki
+      host: 'localhost',
+      port: 8080,
+      database: 'defaultdb',
+      username: 'root', // Update with your local MySQL username
+      password: '', // Update with your local MySQL password
     );
 
     _authService = AuthService(_dbService);

@@ -27,7 +27,7 @@ class DatabaseService {
       user: username,
       password: password,
       db: database,
-      useSSL: true, // Karena SSL-mode=REQUIRED di connection string Anda
+      useSSL: false, // Changed to false for local development
     );
 
     try {
@@ -45,19 +45,19 @@ class DatabaseService {
     }
   }
 
-  // Metode untuk cek apakah tabel users ada, jika tidak buat tabel
+  // Metode untuk memastikan koneksi bisa terbentuk
   Future<void> ensureTablesExist() async {
     final conn = await getConnection();
 
-    // Cek dan buat tabel users jika belum ada
+    // Create tables if they don't exist
     await conn.query('''
-      CREATE TABLE IF NOT EXISTS users (
-        id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
-        username VARCHAR(50) NOT NULL UNIQUE,
+      CREATE TABLE IF NOT EXISTS pengguna (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        username VARCHAR(50) UNIQUE NOT NULL,
         password VARCHAR(255) NOT NULL,
-        gender VARCHAR(20),
-        birth_date VARCHAR(20),
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        jk CHAR(1),
+        tangga_lahir VARCHAR(20),
+        state INT DEFAULT 0
       )
     ''');
   }
@@ -65,7 +65,7 @@ class DatabaseService {
   // Metode untuk mencari user berdasarkan username
   Future<Results> getUserByUsername(String username) async {
     final conn = await getConnection();
-    return await conn.query('SELECT * FROM users WHERE username = ?', [
+    return await conn.query('SELECT * FROM pengguna WHERE username = ?', [
       username,
     ]);
   }
@@ -79,7 +79,7 @@ class DatabaseService {
   }) async {
     final conn = await getConnection();
     return await conn.query(
-      'INSERT INTO users (username, password, gender, birth_date) VALUES (?, ?, ?, ?)',
+      'INSERT INTO pengguna (username, password, jk, tangga_lahir, state) VALUES (?, ?, ?, ?, 0)',
       [username, password, gender, birthDate],
     );
   }
@@ -93,7 +93,7 @@ class DatabaseService {
   }) async {
     final conn = await getConnection();
 
-    String query = 'UPDATE users SET';
+    String query = 'UPDATE pengguna SET';
     List<Object> params = [];
 
     if (password != null) {
@@ -103,13 +103,13 @@ class DatabaseService {
 
     if (gender != null) {
       if (params.isNotEmpty) query += ',';
-      query += ' gender = ?';
+      query += ' jk = ?';
       params.add(gender);
     }
 
     if (birthDate != null) {
       if (params.isNotEmpty) query += ',';
-      query += ' birth_date = ?';
+      query += ' tangga_lahir = ?';
       params.add(birthDate);
     }
 

@@ -26,13 +26,13 @@ class _RegisterPageState extends State<RegisterPage> {
   void initState() {
     super.initState();
 
-    // Inisialisasi koneksi database Aiven MySQL
+    // Updated connection to local MySQL server
     _dbService = DatabaseService(
-      host: 'turumysql-turuproject.e.aivencloud.com',
-      port: 0,
-      database: '', // harusnya ga disini
-      username: '', // harusnya ga disini
-      password: '', // harusnya ga disini
+      host: 'localhost',
+      port: 8080,
+      database: 'defaultdb',
+      username: 'root', // Update with your local MySQL username
+      password: '', // Update with your local MySQL password
     );
 
     _authService = AuthService(_dbService);

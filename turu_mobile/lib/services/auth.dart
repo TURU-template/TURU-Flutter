@@ -64,6 +64,14 @@ class AuthService {
         return false; // Username sudah digunakan
       }
 
+      // Convert gender format
+      String? genderCode;
+      if (gender == 'Laki-laki') {
+        genderCode = 'L';
+      } else if (gender == 'Perempuan') {
+        genderCode = 'P';
+      }
+
       // Hash password sebelum disimpan
       final hashedPassword = _hashPassword(password);
 
@@ -71,7 +79,7 @@ class AuthService {
       final result = await _dbService.createUser(
         username: username,
         password: hashedPassword,
-        gender: gender,
+        gender: genderCode,
         birthDate: birthDate,
       );
 
@@ -164,9 +172,19 @@ class AuthService {
         return false; // User tidak login
       }
 
+      // Convert gender format
+      String? genderCode;
+      if (gender == 'Laki-laki') {
+        genderCode = 'L';
+      } else if (gender == 'Perempuan') {
+        genderCode = 'P';
+      } else {
+        genderCode = gender;
+      }
+
       final updateResult = await _dbService.updateUser(
         userId: userId,
-        gender: gender,
+        gender: genderCode,
         birthDate: birthDate,
       );
 
