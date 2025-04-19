@@ -32,6 +32,11 @@ dependencies:
   google_fonts: ^6.1.0
   audioplayers: ^6.4.0
   bootstrap_icons: ^1.10.5
+  mysql1: ^0.20.0  # Library koneksi MySQL
+  shared_preferences: ^2.2.0  # Untuk menyimpan data login
+  crypto: ^3.0.3  # Untuk enkripsi password
+  intl: ^0.18.0  # Untuk format tanggal dan waktu
+  http: ^1.0.0  # Untuk melakukan request HTTP
 
   flutter:
     sdk: flutter

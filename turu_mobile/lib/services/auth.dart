@@ -1,197 +1,153 @@
+// TURU-Flutter/turu_mobile/lib/services/auth.dart:
 import 'dart:convert';
-import 'package:crypto/crypto.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'db.dart';
+import 'dart:io' show Platform; // Import Platform
+import 'package:http/http.dart' as http;
 
 class AuthService {
-  final DatabaseService _dbService;
-  final String _userIdKey = 'userId';
-  final String _usernameKey = 'username';
+  // --- PENTING: Sesuaikan Base URL ---
+  // Gunakan 10.0.2.2 untuk Android Emulator
+  // Gunakan IP Address mesin Anda (misal: 192.168.1.100) jika pakai physical device di jaringan yg sama
+  // Gunakan localhost atau 127.0.0.1 jika pakai iOS Simulator
+  static final String _baseUrl =
+      Platform.isAndroid
+          ? 'http://10.0.2.2:8080' // IP khusus Android Emulator ke host localhost
+          : 'http://localhost:8080'; // Default untuk iOS Sim/platform lain
 
-  AuthService(this._dbService);
-
-  // Fungsi untuk hashing password menggunakan SHA-256
-  String _hashPassword(String password) {
-    final bytes = utf8.encode(password);
-    final digest = sha256.convert(bytes);
-    return digest.toString();
-  }
-
-  // Login dengan username dan password
-  Future<bool> login(String username, String password) async {
+  // Fungsi Login (sudah oke, tapi kita tambahkan return data user jika sukses)
+  Future<Map<String, dynamic>> login(String username, String password) async {
+    final url = Uri.parse('$_baseUrl/login');
+    print('Attempting login to $url with username: $username'); // Debug log
     try {
-      // Pastikan tabel ada
-      await _dbService.ensureTablesExist();
+      final response = await http
+          .post(
+            url,
+            headers: {'Content-Type': 'application/json; charset=UTF-T'},
+            body: jsonEncode({'username': username, 'password': password}),
+          )
+          .timeout(const Duration(seconds: 15)); // Tambahkan timeout
 
-      // Cari user berdasarkan username
-      final results = await _dbService.getUserByUsername(username);
+      print('Login response status: ${response.statusCode}'); // Debug log
+      // print('Login response body: ${response.body}'); // Debug log (hati-hati data sensitif)
 
-      if (results.isEmpty) {
-        return false; // User tidak ditemukan
-      }
+      final body = jsonDecode(response.body);
 
-      final user = results.first;
-      final storedPassword = user['password'] as String;
-      final hashedInputPassword = _hashPassword(password);
-
-      if (storedPassword == hashedInputPassword) {
-        // Jika password cocok, simpan info login di SharedPreferences
-        await _saveUserSession(user['id'] as int, username);
-        return true;
+      if (response.statusCode == 200) {
+        // Login berhasil, kembalikan data user dari response backend
+        print('Login successful for $username');
+        return body
+            as Map<String, dynamic>; // Harusnya berisi 'message' dan 'user'
       } else {
-        return false; // Password salah
+        // Login gagal, lemparkan error dari response backend
+        final errorMessage =
+            body['error'] ?? 'Login failed with status ${response.statusCode}';
+        print('Login failed: $errorMessage');
+        throw Exception(errorMessage);
       }
     } catch (e) {
-      print('Login error: ${e.toString()}');
-      return false;
+      print(
+        'Error during login request: $e',
+      ); // Log error jaringan/timeout/parsing
+      throw Exception(
+        'Failed to connect to the server. Please check your connection.',
+      ); // Pesan error umum
     }
   }
 
-  // Register user baru
-  Future<bool> register({
+  // Fungsi Register (perbaiki format tanggal_lahir)
+  Future<void> register({
     required String username,
     required String password,
-    String? gender,
-    String? birthDate,
+    required String? jk, // Terima L/P atau null
+    required String? tanggalLahir, // Terima YYYY-MM-DD atau null
   }) async {
+    final url = Uri.parse('$_baseUrl/register');
+    print('Attempting register to $url with username: $username'); // Debug log
+
+    // Pastikan jk adalah 'L', 'P', atau null
+    String? genderToSend = (jk == 'L' || jk == 'P') ? jk : null;
+
+    // Pastikan tanggalLahir adalah format YYYY-MM-DD atau null
+    String? birthDateToSend = tanggalLahir; // Asumsi sudah YYYY-MM-DD
+
     try {
-      // Pastikan tabel ada
-      await _dbService.ensureTablesExist();
+      final response = await http
+          .post(
+            url,
+            headers: {'Content-Type': 'application/json; charset=UTF-8'},
+            body: jsonEncode({
+              'username': username,
+              'password': password,
+              'jk': genderToSend, // Kirim 'L', 'P', atau null
+              'tanggal_lahir': birthDateToSend, // Kirim YYYY-MM-DD atau null
+            }),
+          )
+          .timeout(const Duration(seconds: 15)); // Tambahkan timeout
 
-      // Cek apakah username sudah ada
-      final existingUser = await _dbService.getUserByUsername(username);
-      if (existingUser.isNotEmpty) {
-        return false; // Username sudah digunakan
-      }
+      print('Register response status: ${response.statusCode}'); // Debug log
+      // print('Register response body: ${response.body}'); // Debug log
 
-      // Convert gender format
-      String? genderCode;
-      if (gender == 'Laki-laki') {
-        genderCode = 'L';
-      } else if (gender == 'Perempuan') {
-        genderCode = 'P';
-      }
+      final body = jsonDecode(response.body);
 
-      // Hash password sebelum disimpan
-      final hashedPassword = _hashPassword(password);
-
-      // Simpan user baru ke database
-      final result = await _dbService.createUser(
-        username: username,
-        password: hashedPassword,
-        gender: genderCode,
-        birthDate: birthDate,
-      );
-
-      return result.affectedRows! > 0;
-    } catch (e) {
-      print('Registration error: ${e.toString()}');
-      return false;
-    }
-  }
-
-  // Menyimpan informasi sesi user ke SharedPreferences
-  Future<void> _saveUserSession(int userId, String username) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setInt(_userIdKey, userId);
-    await prefs.setString(_usernameKey, username);
-  }
-
-  // Memeriksa apakah user sudah login
-  Future<bool> isLoggedIn() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.containsKey(_userIdKey);
-  }
-
-  // Mendapatkan user ID saat ini
-  Future<int?> getCurrentUserId() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getInt(_userIdKey);
-  }
-
-  // Mendapatkan username saat ini
-  Future<String?> getCurrentUsername() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getString(_usernameKey);
-  }
-
-  // Logout user
-  Future<void> logout() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove(_userIdKey);
-    await prefs.remove(_usernameKey);
-  }
-
-  // Memperbarui password user
-  Future<bool> updatePassword(
-    String currentPassword,
-    String newPassword,
-  ) async {
-    try {
-      final userId = await getCurrentUserId();
-      final username = await getCurrentUsername();
-
-      if (userId == null || username == null) {
-        return false; // User tidak login
-      }
-
-      // Verifikasi password saat ini
-      final results = await _dbService.getUserByUsername(username);
-      if (results.isEmpty) {
-        return false;
-      }
-
-      final user = results.first;
-      final storedPassword = user['password'] as String;
-      final hashedCurrentPassword = _hashPassword(currentPassword);
-
-      if (storedPassword != hashedCurrentPassword) {
-        return false; // Password saat ini salah
-      }
-
-      // Update password dengan yang baru
-      final hashedNewPassword = _hashPassword(newPassword);
-      final updateResult = await _dbService.updateUser(
-        userId: userId,
-        password: hashedNewPassword,
-      );
-
-      return updateResult.affectedRows! > 0;
-    } catch (e) {
-      print('Update password error: ${e.toString()}');
-      return false;
-    }
-  }
-
-  // Memperbarui data profil user
-  Future<bool> updateProfile({String? gender, String? birthDate}) async {
-    try {
-      final userId = await getCurrentUserId();
-
-      if (userId == null) {
-        return false; // User tidak login
-      }
-
-      // Convert gender format
-      String? genderCode;
-      if (gender == 'Laki-laki') {
-        genderCode = 'L';
-      } else if (gender == 'Perempuan') {
-        genderCode = 'P';
+      if (response.statusCode == 200) {
+        // Register berhasil
+        print('Registration successful for $username');
+        return; // Tidak perlu mengembalikan apa pun
       } else {
-        genderCode = gender;
+        // Register gagal
+        final errorMessage =
+            body['error'] ??
+            'Register failed with status ${response.statusCode}';
+        print('Registration failed: $errorMessage');
+        throw Exception(errorMessage);
       }
-
-      final updateResult = await _dbService.updateUser(
-        userId: userId,
-        gender: genderCode,
-        birthDate: birthDate,
-      );
-
-      return updateResult.affectedRows! > 0;
     } catch (e) {
-      print('Update profile error: ${e.toString()}');
-      return false;
+      print(
+        'Error during register request: $e',
+      ); // Log error jaringan/timeout/parsing
+      // Beri pesan error spesifik jika mungkin
+      if (e is Exception && e.toString().contains('Failed host lookup')) {
+        throw Exception(
+          'Cannot connect to server at $_baseUrl. Is the backend running?',
+        );
+      } else if (e is Exception &&
+          e.toString().contains('Connection refused')) {
+        throw Exception(
+          'Connection refused by server at $_baseUrl. Is the backend running and port open?',
+        );
+      }
+      throw Exception(
+        'Failed to connect to the server. Please check your connection.',
+      ); // Pesan error umum
     }
+  }
+
+  // Tambahkan fungsi untuk menyimpan status login (contoh sederhana, gunakan shared_preferences di app nyata)
+  // Ini hanya contoh, Anda perlu implementasi penyimpanan yang persisten
+  bool _isUserLoggedIn = false;
+  Map<String, dynamic>? _loggedInUserData;
+
+  Future<void> setLoggedIn(Map<String, dynamic> userData) async {
+    _isUserLoggedIn = true;
+    _loggedInUserData =
+        userData['user']; // Simpan data user dari response login
+    // Di aplikasi nyata: simpan token/status ke SharedPreferences
+    print("User set as logged in: ${_loggedInUserData?['username']}");
+  }
+
+  Future<void> logout() async {
+    _isUserLoggedIn = false;
+    _loggedInUserData = null;
+    // Di aplikasi nyata: hapus token/status dari SharedPreferences
+    print("User logged out.");
+  }
+
+  Future<bool> isLoggedIn() async {
+    // Di aplikasi nyata: baca status dari SharedPreferences
+    return _isUserLoggedIn;
+  }
+
+  Map<String, dynamic>? getCurrentUser() {
+    // Di aplikasi nyata: baca data user dari SharedPreferences jika perlu
+    return _loggedInUserData;
   }
 }

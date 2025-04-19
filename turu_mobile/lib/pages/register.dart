@@ -1,334 +1,299 @@
+// TURU-Flutter/turu_mobile/lib/pages/register.dart:
 import 'package:flutter/material.dart';
-import '../main.dart';
-import 'login.dart';
-import '../services/db.dart';
-import '../services/auth.dart';
+import 'package:intl/intl.dart'; // Import intl untuk format tanggal
+import '../services/auth.dart'; // <-- Impor AuthService
+import '../main.dart'; // <-- Impor TuruColors jika perlu
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({Key? key}) : super(key: key);
 
   @override
-  State<RegisterPage> createState() => _RegisterPageState();
+  _RegisterPageState createState() => _RegisterPageState();
 }
 
 class _RegisterPageState extends State<RegisterPage> {
-  final TextEditingController _usernameController = TextEditingController();
-  final TextEditingController _passwordController = TextEditingController();
-  final TextEditingController _dateController = TextEditingController();
-  String _selectedGender = '';
+  final _formKey = GlobalKey<FormState>();
+  final _usernameController = TextEditingController();
+  final _passwordController = TextEditingController();
+  final _confirmPasswordController =
+      TextEditingController(); // Tambah konfirmasi password
+  final _tglController =
+      TextEditingController(); // Controller untuk tanggal lahir
+  final AuthService _authService = AuthService(); // <-- Gunakan AuthService
   bool _isLoading = false;
   String _errorMessage = '';
-
-  late DatabaseService _dbService;
-  late AuthService _authService;
-
-  @override
-  void initState() {
-    super.initState();
-
-    // Updated connection to local MySQL server
-    _dbService = DatabaseService(
-      host: 'localhost',
-      port: 8080,
-      database: 'defaultdb',
-      username: 'root', // Update with your local MySQL username
-      password: '', // Update with your local MySQL password
-    );
-
-    _authService = AuthService(_dbService);
-  }
+  String? _selectedGender; // Untuk menyimpan L atau P
+  DateTime? _selectedDate; // Untuk menyimpan tanggal terpilih
 
   @override
   void dispose() {
     _usernameController.dispose();
     _passwordController.dispose();
-    _dateController.dispose();
+    _confirmPasswordController.dispose();
+    _tglController.dispose();
     super.dispose();
   }
 
-  Future<void> _register() async {
-    if (_usernameController.text.isEmpty || _passwordController.text.isEmpty) {
+  Future<void> _selectDate(BuildContext context) async {
+    // Sembunyikan keyboard jika terbuka
+    FocusScope.of(context).unfocus();
+
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: _selectedDate ?? DateTime.now(), // Tanggal awal di picker
+      firstDate: DateTime(1900), // Batas tanggal awal
+      lastDate: DateTime.now(), // Batas tanggal akhir (hari ini)
+    );
+    if (picked != null && picked != _selectedDate) {
       setState(() {
-        _errorMessage = 'Username dan password tidak boleh kosong';
+        _selectedDate = picked;
+        // Format tanggal ke YYYY-MM-DD untuk dikirim ke backend
+        _tglController.text = DateFormat('yyyy-MM-dd').format(picked);
       });
+    }
+  }
+
+  void _submitRegister() async {
+    // Sembunyikan keyboard
+    FocusScope.of(context).unfocus();
+
+    // Validasi form
+    if (!_formKey.currentState!.validate()) {
+      setState(() => _errorMessage = '');
       return;
     }
 
     setState(() {
       _isLoading = true;
-      _errorMessage = '';
+      _errorMessage = ''; // Hapus error lama
     });
 
     try {
-      // Perbaikan cara pemanggilan fungsi register dengan named parameters
-      final success = await _authService.register(
+      // Panggil register dari AuthService
+      await _authService.register(
         username: _usernameController.text.trim(),
         password: _passwordController.text.trim(),
-        birthDate: _dateController.text.isEmpty ? null : _dateController.text,
-        gender: _selectedGender.isEmpty ? null : _selectedGender,
+        jk: _selectedGender, // Kirim 'L', 'P', atau null
+        tanggalLahir:
+            _tglController.text.isNotEmpty
+                ? _tglController.text
+                : null, // Kirim YYYY-MM-DD atau null
       );
 
-      if (success) {
-        // Berhasil registrasi, navigasi ke LoginPage
-        if (mounted) {
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (context) => const LoginPage()),
-          );
-        }
-      } else {
-        setState(() {
-          _errorMessage = 'Registrasi gagal. Username mungkin sudah digunakan.';
-        });
+      // Jika berhasil (tidak melempar exception)
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Registrasi berhasil! Silakan login.')),
+        );
+        // Kembali ke halaman login setelah berhasil
+        Navigator.pop(context);
       }
     } catch (e) {
-      setState(() {
-        _errorMessage = 'Terjadi kesalahan: ${e.toString()}';
-      });
+      // Tangkap error dari AuthService
+      if (mounted) {
+        setState(() {
+          _errorMessage = e.toString().replaceFirst('Exception: ', '');
+        });
+      }
     } finally {
-      setState(() {
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final indigoColor = TuruColors.indigo; // Contoh ambil warna
+
     return Scaffold(
-      backgroundColor: TuruColors.primaryBackground,
+      // backgroundColor: TuruColors.primaryBackground, // Sesuaikan
+      appBar: AppBar(
+        title: const Text('Register'),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+      ),
       body: Center(
         child: SingleChildScrollView(
-          child: Container(
+          padding: const EdgeInsets.all(32.0),
+          child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 400),
-            child: Padding(
-              padding: const EdgeInsets.all(32.0),
+            child: Form(
+              key: _formKey,
               child: Column(
-                mainAxisSize: MainAxisSize.min,
                 mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   const Text(
-                    'Registrasi Pengguna',
-                    style: TextStyle(
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
+                    'Buat Akun Baru',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
                   ),
-                  const SizedBox(height: 40),
-                  // Username field
-                  Container(
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.9),
-                      borderRadius: BorderRadius.circular(8),
+                  const SizedBox(height: 30),
+
+                  // Input Username
+                  TextFormField(
+                    controller: _usernameController,
+                    decoration: const InputDecoration(
+                      labelText: 'Username',
+                      prefixIcon: Icon(Icons.person_outline),
+                      border: OutlineInputBorder(),
                     ),
-                    child: TextField(
-                      controller: _usernameController,
-                      style: const TextStyle(color: Colors.black),
-                      decoration: const InputDecoration(
-                        hintText: 'Username',
-                        hintStyle: TextStyle(color: Colors.grey),
-                        prefixIcon: Icon(Icons.person, color: Colors.purple),
-                        border: InputBorder.none,
-                        contentPadding: EdgeInsets.symmetric(vertical: 16),
-                      ),
-                    ),
+                    validator:
+                        (val) =>
+                            val == null || val.isEmpty
+                                ? 'Username tidak boleh kosong'
+                                : null,
+                    textInputAction: TextInputAction.next,
                   ),
                   const SizedBox(height: 16),
-                  // Password field
-                  Container(
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.9),
-                      borderRadius: BorderRadius.circular(8),
+
+                  // Input Password
+                  TextFormField(
+                    controller: _passwordController,
+                    decoration: const InputDecoration(
+                      labelText: 'Password',
+                      prefixIcon: Icon(Icons.lock_outline),
+                      border: OutlineInputBorder(),
                     ),
-                    child: TextField(
-                      controller: _passwordController,
-                      obscureText: true,
-                      style: const TextStyle(color: Colors.black),
-                      decoration: const InputDecoration(
-                        hintText: 'Password',
-                        hintStyle: TextStyle(color: Colors.grey),
-                        prefixIcon: Icon(Icons.key, color: Colors.amber),
-                        border: InputBorder.none,
-                        contentPadding: EdgeInsets.symmetric(vertical: 16),
-                      ),
-                    ),
+                    obscureText: true,
+                    validator: (val) {
+                      if (val == null || val.isEmpty)
+                        return 'Password tidak boleh kosong';
+                      if (val.length < 6)
+                        return 'Password minimal 6 karakter'; // Contoh validasi panjang
+                      return null;
+                    },
+                    textInputAction: TextInputAction.next,
                   ),
                   const SizedBox(height: 16),
-                  // Date Picker field
-                  Container(
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.9),
-                      borderRadius: BorderRadius.circular(8),
+
+                  // Input Konfirmasi Password
+                  TextFormField(
+                    controller: _confirmPasswordController,
+                    decoration: const InputDecoration(
+                      labelText: 'Konfirmasi Password',
+                      prefixIcon: Icon(Icons.lock_outline),
+                      border: OutlineInputBorder(),
                     ),
-                    child: TextField(
-                      controller: _dateController,
-                      readOnly: true,
-                      style: const TextStyle(color: Colors.black),
-                      decoration: InputDecoration(
-                        hintText: 'mm/dd/yyyy',
-                        hintStyle: const TextStyle(color: Colors.grey),
-                        prefixIcon: const Icon(
-                          Icons.calendar_today,
-                          color: Colors.blue,
-                        ),
-                        suffixIcon: IconButton(
-                          icon: const Icon(Icons.date_range),
-                          onPressed: () async {
-                            final DateTime? picked = await showDatePicker(
-                              context: context,
-                              initialDate: DateTime.now(),
-                              firstDate: DateTime(1900),
-                              lastDate: DateTime.now(),
-                            );
-                            if (picked != null) {
-                              setState(() {
-                                _dateController.text =
-                                    "${picked.month}/${picked.day}/${picked.year}";
-                              });
-                            }
-                          },
-                        ),
-                        border: InputBorder.none,
-                        contentPadding: const EdgeInsets.symmetric(
-                          vertical: 16,
-                        ),
-                      ),
-                    ),
+                    obscureText: true,
+                    validator: (val) {
+                      if (val == null || val.isEmpty)
+                        return 'Konfirmasi password tidak boleh kosong';
+                      if (val != _passwordController.text)
+                        return 'Password tidak cocok';
+                      return null;
+                    },
+                    textInputAction: TextInputAction.next,
                   ),
                   const SizedBox(height: 16),
-                  // Gender Selection
+
+                  // Input Tanggal Lahir (Read Only, Trigger Date Picker)
+                  TextFormField(
+                    controller: _tglController,
+                    decoration: InputDecoration(
+                      labelText: 'Tanggal Lahir (Opsional)',
+                      prefixIcon: const Icon(Icons.calendar_today_outlined),
+                      border: const OutlineInputBorder(),
+                      hintText: 'YYYY-MM-DD',
+                      suffixIcon: IconButton(
+                        // Tombol untuk membuka picker
+                        icon: const Icon(Icons.edit_calendar_outlined),
+                        onPressed: () => _selectDate(context),
+                      ),
+                    ),
+                    readOnly: true, // Buat read only agar keyboard tidak muncul
+                    onTap:
+                        () => _selectDate(context), // Buka picker saat diklik
+                    // Tidak perlu validator wajib karena opsional
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Pilihan Jenis Kelamin (Opsional)
+                  const Text(
+                    "Jenis Kelamin (Opsional):",
+                    style: TextStyle(fontSize: 16),
+                  ),
                   Row(
                     children: [
                       Expanded(
-                        child: GestureDetector(
-                          onTap: () {
-                            setState(() {
-                              _selectedGender = 'Laki-laki';
-                            });
-                          },
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.9),
-                              borderRadius: BorderRadius.circular(8),
-                              border:
-                                  _selectedGender == 'Laki-laki'
-                                      ? Border.all(color: Colors.blue, width: 2)
-                                      : null,
-                            ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: const [
-                                Icon(Icons.male, color: Colors.blue),
-                                SizedBox(width: 8),
-                                Text(
-                                  'Laki-laki',
-                                  style: TextStyle(color: Colors.black),
-                                ),
-                              ],
-                            ),
-                          ),
+                        child: RadioListTile<String>(
+                          title: const Text('Laki-laki'),
+                          value: 'L',
+                          groupValue: _selectedGender,
+                          onChanged:
+                              (value) =>
+                                  setState(() => _selectedGender = value),
+                          contentPadding: EdgeInsets.zero,
                         ),
                       ),
-                      const SizedBox(width: 16),
                       Expanded(
-                        child: GestureDetector(
-                          onTap: () {
-                            setState(() {
-                              _selectedGender = 'Perempuan';
-                            });
-                          },
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.9),
-                              borderRadius: BorderRadius.circular(8),
-                              border:
-                                  _selectedGender == 'Perempuan'
-                                      ? Border.all(color: Colors.pink, width: 2)
-                                      : null,
-                            ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: const [
-                                Icon(Icons.female, color: Colors.pink),
-                                SizedBox(width: 8),
-                                Text(
-                                  'Perempuan',
-                                  style: TextStyle(color: Colors.black),
-                                ),
-                              ],
-                            ),
-                          ),
+                        child: RadioListTile<String>(
+                          title: const Text('Perempuan'),
+                          value: 'P',
+                          groupValue: _selectedGender,
+                          onChanged:
+                              (value) =>
+                                  setState(() => _selectedGender = value),
+                          contentPadding: EdgeInsets.zero,
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 8),
-                  // Error Message
+                  // Tombol untuk clear pilihan gender
+                  if (_selectedGender != null)
+                    TextButton(
+                      onPressed: () => setState(() => _selectedGender = null),
+                      child: const Text(
+                        "Hapus Pilihan Gender",
+                        style: TextStyle(fontSize: 12),
+                      ),
+                    ),
+                  const SizedBox(height: 12),
+
+                  // Tampilkan Pesan Error
                   if (_errorMessage.isNotEmpty)
                     Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 8.0),
+                      padding: const EdgeInsets.only(bottom: 12.0),
                       child: Text(
                         _errorMessage,
                         style: const TextStyle(color: Colors.red, fontSize: 14),
+                        textAlign: TextAlign.center,
                       ),
                     ),
-                  const SizedBox(height: 16),
-                  // Register Button
+
+                  // Tombol Register
                   SizedBox(
-                    width: double.infinity,
                     height: 50,
                     child: ElevatedButton(
-                      onPressed: _isLoading ? null : _register,
+                      onPressed: _isLoading ? null : _submitRegister,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: TuruColors.indigo,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
+                        backgroundColor: indigoColor,
                       ),
                       child:
                           _isLoading
-                              ? const CircularProgressIndicator(
-                                color: Colors.white,
+                              ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                    Colors.white,
+                                  ),
+                                ),
                               )
                               : const Text(
                                 'Register',
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  color: Colors.white,
-                                ),
+                                style: TextStyle(fontSize: 18),
                               ),
                     ),
                   ),
-                  const SizedBox(height: 16),
-                  // Already have account button
-                  SizedBox(
-                    width: double.infinity,
-                    height: 50,
-                    child: ElevatedButton(
-                      onPressed:
-                          _isLoading
-                              ? null
-                              : () {
-                                Navigator.pushReplacement(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => const LoginPage(),
-                                  ),
-                                );
-                              },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: TuruColors.indigo,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ),
-                      child: const Text(
-                        'Sudah Punya Akun',
-                        style: TextStyle(fontSize: 18, color: Colors.white),
-                      ),
-                    ),
+                  const SizedBox(height: 20),
+
+                  // Tombol kembali ke Login
+                  TextButton(
+                    onPressed: _isLoading ? null : () => Navigator.pop(context),
+                    child: const Text('Sudah punya akun? Login'),
                   ),
                 ],
               ),

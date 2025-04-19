@@ -1,51 +1,41 @@
+// TURU-Flutter/turu_mobile/lib/pages/login.dart:
 import 'package:flutter/material.dart';
-import '../main.dart';
-import 'register.dart';
-import '../services/db.dart';
-import '../services/auth.dart';
+import '../services/auth.dart'; // <-- Impor AuthService yang benar
+import 'register.dart'; // <-- Impor halaman register
+import '../main.dart'; // <-- Impor MainScreen dan TuruColors (jika perlu)
 
 class LoginPage extends StatefulWidget {
+  // Ganti nama agar konsisten (sebelumnya LoginPage)
   const LoginPage({Key? key}) : super(key: key);
 
   @override
-  State<LoginPage> createState() => _LoginPageState();
+  _LoginPageState createState() => _LoginPageState();
 }
 
 class _LoginPageState extends State<LoginPage> {
-  final TextEditingController _usernameController = TextEditingController();
-  final TextEditingController _passwordController = TextEditingController();
+  final _formKey = GlobalKey<FormState>();
+  final _usernameController = TextEditingController();
+  final _passwordController = TextEditingController();
+  final AuthService _authService = AuthService(); // <-- Gunakan AuthService
   bool _isLoading = false;
-  String _errorMessage = '';
-
-  late DatabaseService _dbService;
-  late AuthService _authService;
+  String _errorMessage = ''; // Untuk menampilkan error di UI
 
   @override
   void initState() {
     super.initState();
-
-    // Updated connection to local MySQL server
-    _dbService = DatabaseService(
-      host: 'localhost',
-      port: 8080,
-      database: 'defaultdb',
-      username: 'root', // Update with your local MySQL username
-      password: '', // Update with your local MySQL password
-    );
-
-    _authService = AuthService(_dbService);
-
-    // Cek apakah pengguna sudah login
-    _checkLoginStatus();
+    // Cek status login saat halaman dimuat (opsional, tergantung flow app)
+    // _checkLoginStatus();
   }
 
-  Future<void> _checkLoginStatus() async {
-    final isLoggedIn = await _authService.isLoggedIn();
-    if (isLoggedIn) {
-      // Jika sudah login, langsung navigasi ke MainScreen
-      _navigateToMainScreen();
-    }
-  }
+  // Hapus fungsi _checkLoginStatus jika tidak diperlukan di sini
+  /*
+   Future<void> _checkLoginStatus() async {
+     final isLoggedIn = await _authService.isLoggedIn();
+     if (isLoggedIn && mounted) { // Cek mounted
+       _navigateToMainScreen();
+     }
+   }
+   */
 
   @override
   void dispose() {
@@ -54,187 +44,198 @@ class _LoginPageState extends State<LoginPage> {
     super.dispose();
   }
 
-  Future<void> _login() async {
+  void _submitLogin() async {
+    // Sembunyikan keyboard
+    FocusScope.of(context).unfocus();
+
+    // Validasi form
+    if (!_formKey.currentState!.validate()) {
+      setState(() => _errorMessage = ''); // Hapus error lama jika ada
+      return;
+    }
+
     setState(() {
       _isLoading = true;
-      _errorMessage = '';
+      _errorMessage = ''; // Hapus pesan error sebelum mencoba login
     });
 
     try {
-      final success = await _authService.login(
+      // Panggil login dari AuthService
+      final loginResult = await _authService.login(
         _usernameController.text.trim(),
         _passwordController.text.trim(),
       );
 
-      if (success) {
+      // Jika login berhasil (tidak melempar exception)
+      // Simpan status login (AuthService perlu dimodifikasi untuk ini)
+      await _authService.setLoggedIn(loginResult); // Tandai user sudah login
+
+      // Navigasi ke halaman utama jika masih dalam context widget
+      if (mounted) {
         _navigateToMainScreen();
-      } else {
-        setState(() {
-          _errorMessage = 'Username atau password salah.';
-        });
       }
     } catch (e) {
+      // Tangkap error dari AuthService
       setState(() {
-        _errorMessage = 'Terjadi kesalahan: ${e.toString()}';
+        // Tampilkan pesan error yang didapat dari backend/AuthService
+        _errorMessage = e.toString().replaceFirst(
+          'Exception: ',
+          '',
+        ); // Hapus prefix "Exception: "
       });
     } finally {
-      setState(() {
-        _isLoading = false;
-      });
+      // Pastikan loading indicator berhenti meskipun error, jika widget masih mounted
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
-  // Method untuk login sebagai tamu
+  // Login sebagai tamu (jika fitur ini masih relevan)
   void _loginAsGuest() {
     // Langsung navigasi ke MainScreen tanpa autentikasi
     _navigateToMainScreen();
   }
 
   void _navigateToMainScreen() {
+    // Ganti '/home' dengan '/main' sesuai definisi di main.dart
     Navigator.pushReplacementNamed(context, '/main');
+  }
+
+  void _navigateToRegister() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => const RegisterPage(),
+      ), // Pastikan nama class RegisterPage benar
+    );
   }
 
   @override
   Widget build(BuildContext context) {
+    // Menggunakan warna dari TuruColors jika didefinisikan di main.dart
+    final primaryBg = TuruColors.primaryBackground; // Contoh ambil warna
+    final indigoColor = TuruColors.indigo; // Contoh ambil warna
+
     return Scaffold(
-      backgroundColor: TuruColors.primaryBackground,
+      // backgroundColor: primaryBg, // Gunakan warna tema
+      appBar: AppBar(
+        title: const Text('Login'),
+        backgroundColor: Colors.transparent, // Atau sesuaikan
+        elevation: 0,
+      ),
       body: Center(
         child: SingleChildScrollView(
-          child: Container(
+          padding: const EdgeInsets.all(32.0),
+          child: ConstrainedBox(
+            // Batasi lebar form di layar besar
             constraints: const BoxConstraints(maxWidth: 400),
-            child: Padding(
-              padding: const EdgeInsets.all(32.0),
+            child: Form(
+              key: _formKey,
               child: Column(
-                mainAxisSize: MainAxisSize.min,
-                mainAxisAlignment: MainAxisAlignment.center,
+                mainAxisAlignment: MainAxisAlignment.center, // Pusatkan konten
+                crossAxisAlignment:
+                    CrossAxisAlignment.stretch, // Lebarkan tombol/input
                 children: [
+                  // Tambahkan Judul atau Logo jika perlu
                   const Text(
-                    'Login Pengguna',
-                    style: TextStyle(
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
+                    'Selamat Datang!', // Contoh judul
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
                   ),
-                  const SizedBox(height: 40),
-                  Container(
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.9),
-                      borderRadius: BorderRadius.circular(8),
+                  const SizedBox(height: 30),
+
+                  // Input Username
+                  TextFormField(
+                    controller: _usernameController,
+                    decoration: const InputDecoration(
+                      labelText: 'Username',
+                      prefixIcon: Icon(Icons.person_outline),
+                      border: OutlineInputBorder(),
                     ),
-                    child: TextField(
-                      controller: _usernameController,
-                      style: const TextStyle(color: Colors.black),
-                      decoration: const InputDecoration(
-                        hintText: 'Username',
-                        hintStyle: TextStyle(color: Colors.grey),
-                        prefixIcon: Icon(Icons.person, color: Colors.purple),
-                        border: InputBorder.none,
-                        contentPadding: EdgeInsets.symmetric(vertical: 16),
-                      ),
-                    ),
+                    validator:
+                        (val) =>
+                            val == null || val.isEmpty
+                                ? 'Username tidak boleh kosong'
+                                : null,
+                    textInputAction: TextInputAction.next, // Pindah ke password
                   ),
                   const SizedBox(height: 16),
-                  Container(
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.9),
-                      borderRadius: BorderRadius.circular(8),
+
+                  // Input Password
+                  TextFormField(
+                    controller: _passwordController,
+                    decoration: const InputDecoration(
+                      labelText: 'Password',
+                      prefixIcon: Icon(Icons.lock_outline),
+                      border: OutlineInputBorder(),
                     ),
-                    child: TextField(
-                      controller: _passwordController,
-                      obscureText: true,
-                      style: const TextStyle(color: Colors.black),
-                      decoration: const InputDecoration(
-                        hintText: 'Password',
-                        hintStyle: TextStyle(color: Colors.grey),
-                        prefixIcon: Icon(Icons.key, color: Colors.amber),
-                        border: InputBorder.none,
-                        contentPadding: EdgeInsets.symmetric(vertical: 16),
-                      ),
-                    ),
+                    obscureText: true,
+                    validator:
+                        (val) =>
+                            val == null || val.isEmpty
+                                ? 'Password tidak boleh kosong'
+                                : null,
+                    textInputAction:
+                        TextInputAction.done, // Selesai, trigger submit
+                    onFieldSubmitted:
+                        (_) => _submitLogin(), // Submit saat tekan done
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 12),
+
+                  // Tampilkan Pesan Error
                   if (_errorMessage.isNotEmpty)
                     Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 8.0),
+                      padding: const EdgeInsets.only(bottom: 12.0),
                       child: Text(
                         _errorMessage,
                         style: const TextStyle(color: Colors.red, fontSize: 14),
+                        textAlign: TextAlign.center,
                       ),
                     ),
-                  const SizedBox(height: 16),
+
+                  // Tombol Login
                   SizedBox(
-                    width: double.infinity,
                     height: 50,
                     child: ElevatedButton(
-                      onPressed: _isLoading ? null : _login,
+                      onPressed: _isLoading ? null : _submitLogin,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: TuruColors.indigo,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
+                        backgroundColor: indigoColor,
                       ),
                       child:
                           _isLoading
-                              ? const CircularProgressIndicator(
-                                color: Colors.white,
+                              ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                    Colors.white,
+                                  ),
+                                ),
                               )
                               : const Text(
                                 'Login',
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  color: Colors.white,
-                                ),
+                                style: TextStyle(fontSize: 18),
                               ),
                     ),
                   ),
-                  const SizedBox(height: 16),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 50,
-                    child: ElevatedButton(
-                      onPressed:
-                          _isLoading
-                              ? null
-                              : () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => const RegisterPage(),
-                                  ),
-                                );
-                              },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: TuruColors.indigo,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ),
-                      child: const Text(
-                        'Belum Punya Akun',
-                        style: TextStyle(fontSize: 18, color: Colors.white),
-                      ),
-                    ),
+                  const SizedBox(height: 20),
+
+                  // Tombol ke Register
+                  TextButton(
+                    onPressed: _isLoading ? null : _navigateToRegister,
+                    child: const Text('Belum punya akun? Register di sini'),
                   ),
-                  // Tombol Login as Guest
-                  const SizedBox(height: 16),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 50,
-                    child: ElevatedButton(
-                      onPressed: _isLoading ? null : _loginAsGuest,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.grey[700],
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
+
+                  // Tombol Login Tamu (jika perlu)
+                  /*
+                        const SizedBox(height: 10),
+                        TextButton(
+                           onPressed: _isLoading ? null : _loginAsGuest,
+                           child: const Text('Masuk sebagai Tamu'),
                         ),
-                      ),
-                      child: const Text(
-                        'Login as Guest',
-                        style: TextStyle(fontSize: 18, color: Colors.white),
-                      ),
-                    ),
-                  ),
+                        */
                 ],
               ),
             ),

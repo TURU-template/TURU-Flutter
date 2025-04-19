@@ -1,75 +1,154 @@
-// lib/handlers.dart
+// TURU-Flutter/turu_backend/lib/handlers.dart:
 import 'dart:convert';
 import 'package:shelf/shelf.dart';
-import 'package:mysql1/mysql1.dart';
 import 'package:bcrypt/bcrypt.dart';
+import 'package:mysql1/mysql1.dart'; // Import untuk MySqlException
+import 'db.dart';
 
-import 'env.dart'; // ← ambil env dari lib/env.dart
-
-Future<MySqlConnection> _getConnection() async {
-  final settings = ConnectionSettings(
-    host: env['DB_HOST']!, // tambahkan !
-    port: int.parse(env['DB_PORT']!),
-    user: env['DB_USER']!,
-    password: env['DB_PASS']!,
-    db: env['DB_NAME']!,
-    useSSL: false,
-    useCompression: false,
-  );
-
-  return await MySqlConnection.connect(settings);
-}
+final dbService = DatabaseService();
 
 Future<Response> registerHandler(Request req) async {
-  final body = jsonDecode(await req.readAsString());
-  final conn = await _getConnection();
-
-  final username = body['username'];
-  final pwd = body['password'];
-  final jk = body['jk'];
-  final tgl = body['tanggal_lahir'];
-
-  final hashed = BCrypt.hashpw(pwd, BCrypt.gensalt());
-
   try {
-    await conn.query(
-      'INSERT INTO pengguna (username, password, jk, tanggal_lahir, state) VALUES (?, ?, ?, ?, ?)',
-      [username, hashed, jk, tgl, 1],
+    final bodyString = await req.readAsString();
+    if (bodyString.isEmpty) {
+      return Response(400,
+          body: jsonEncode({'error': 'Request body is empty'}));
+    }
+    final body = jsonDecode(bodyString);
+
+    // Validasi input dasar
+    final username = body['username'] as String?;
+    final pwd = body['password'] as String?;
+    final jk =
+        body['jk'] as String?; // Terima 'L' atau 'P', atau null/string kosong
+    final tgl = body['tanggal_lahir']
+        as String?; // Terima YYYY-MM-DD, atau null/string kosong
+
+    if (username == null || username.isEmpty || pwd == null || pwd.isEmpty) {
+      return Response(400,
+          body: jsonEncode({'error': 'Username and password are required'}));
+    }
+
+    // Pastikan tabel ada (akan coba connect jika belum)
+    // await dbService.ensureTablesExist(); // Dipanggil di dalam getConnection()
+
+    // Hash password
+    final hashed = BCrypt.hashpw(pwd, BCrypt.gensalt());
+
+    // Coba buat user
+    await dbService.createUser(
+      username: username,
+      password: hashed,
+      // Kirim null jika jk atau tgl kosong/null
+      gender: (jk?.isNotEmpty ?? false) ? jk : null,
+      birthDate: (tgl?.isNotEmpty ?? false)
+          ? tgl
+          : null, // Pastikan format YYYY-MM-DD dari frontend
     );
-    return Response.ok(jsonEncode({'message': 'Register sukses'}));
-  } catch (e) {
+    return Response.ok(jsonEncode({'message': 'Register successful'}));
+  } on MySqlException catch (e) {
+    print("[Register Error - MySQL]: ${e.message} (Code: ${e.errorNumber})");
+    // Kirim pesan error yang lebih spesifik jika username duplikat
+    if (e.errorNumber == 1062) {
+      // Error code for duplicate entry
+      return Response(409, // 409 Conflict cocok untuk resource yang sudah ada
+          body: jsonEncode({'error': 'Username already exists'}));
+    }
     return Response.internalServerError(
-      body: jsonEncode({'error': e.toString()}),
-    );
+        body: jsonEncode({'error': 'Database error during registration'}));
+  } on FormatException catch (e) {
+    print("[Register Error - Format]: ${e.message}");
+    return Response(400,
+        body: jsonEncode({'error': 'Invalid request format: ${e.message}'}));
+  } catch (e) {
+    print("[Register Error - General]: ${e.toString()}");
+    // Kirim pesan error yang lebih umum ke client
+    String errorMessage = 'Registration failed due to an unexpected error.';
+    if (e is Exception && e.toString().contains('Username already exists')) {
+      return Response(409,
+          body: jsonEncode({'error': 'Username already exists'}));
+    } else if (e is Exception) {
+      // Jangan ekspos detail error internal secara langsung ke client
+      // errorMessage = e.toString(); // Hindari ini di production
+    }
+    return Response.internalServerError(
+        body: jsonEncode({'error': errorMessage}));
   } finally {
-    await conn.close();
+    // Pertimbangkan untuk menutup koneksi jika tidak digunakan lagi secara aktif
+    // await dbService.closeConnection(); // Atau kelola pool koneksi jika traffic tinggi
   }
 }
 
 Future<Response> loginHandler(Request req) async {
-  final body = jsonDecode(await req.readAsString());
-  final conn = await _getConnection();
-
   try {
-    final res = await conn.query(
-      'SELECT password FROM pengguna WHERE username = ?',
-      [body['username']],
-    );
-    if (res.isEmpty) {
-      return Response.forbidden(
-          jsonEncode({'error': 'Username tidak ditemukan'}));
+    final bodyString = await req.readAsString();
+    if (bodyString.isEmpty) {
+      return Response(400,
+          body: jsonEncode({'error': 'Request body is empty'}));
     }
-    final hashed = res.first[0] as String;
-    if (BCrypt.checkpw(body['password'], hashed)) {
-      return Response.ok(jsonEncode({'message': 'Login berhasil'}));
+    final body = jsonDecode(bodyString);
+
+    final username = body['username'] as String?;
+    final password = body['password'] as String?;
+
+    if (username == null ||
+        username.isEmpty ||
+        password == null ||
+        password.isEmpty) {
+      return Response(400,
+          body: jsonEncode({'error': 'Username and password are required'}));
+    }
+
+    // Pastikan tabel ada (akan coba connect jika belum)
+    // await dbService.ensureTablesExist(); // Dipanggil di dalam getConnection()
+
+    final users = await dbService.getUserByUsername(username);
+
+    if (users.isEmpty) {
+      print("Login attempt failed: Username '$username' not found.");
+      return Response(401, // 401 Unauthorized lebih cocok untuk login gagal
+          body: jsonEncode({'error': 'Invalid username or password'}));
+    }
+
+    final user = users.first;
+    final storedHashed = user['password'] as String; // Ambil hash dari DB
+
+    // Verifikasi password
+    if (BCrypt.checkpw(password, storedHashed)) {
+      print("Login successful for username: '$username'");
+      // Di aplikasi nyata, Anda akan membuat token JWT di sini
+      return Response.ok(jsonEncode({
+        'message': 'Login successful',
+        // Kirim data user lain jika perlu (kecuali password)
+        'user': {
+          'id': user['id'],
+          'username': user['username'],
+          'jk': user['jk'],
+          'tanggal_lahir': user['tanggal_lahir']
+              ?.toString()
+              .split(' ')[0], // Format YYYY-MM-DD
+        }
+      }));
     } else {
-      return Response.forbidden(jsonEncode({'error': 'Password salah'}));
+      print(
+          "Login attempt failed: Incorrect password for username '$username'.");
+      return Response(401,
+          body: jsonEncode({'error': 'Invalid username or password'}));
     }
-  } catch (e) {
+  } on MySqlException catch (e) {
+    print("[Login Error - MySQL]: ${e.message} (Code: ${e.errorNumber})");
     return Response.internalServerError(
-      body: jsonEncode({'error': e.toString()}),
-    );
+        body: jsonEncode({'error': 'Database error during login'}));
+  } on FormatException catch (e) {
+    print("[Login Error - Format]: ${e.message}");
+    return Response(400,
+        body: jsonEncode({'error': 'Invalid request format: ${e.message}'}));
+  } catch (e) {
+    print("[Login Error - General]: ${e.toString()}");
+    return Response.internalServerError(
+        body: jsonEncode({'error': 'Login failed due to an unexpected error'}));
   } finally {
-    await conn.close();
+    // Pertimbangkan untuk menutup koneksi jika tidak digunakan lagi secara aktif
+    // await dbService.closeConnection();
   }
 }
