@@ -1,12 +1,51 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import '../main.dart';
+import 'package:fl_chart/fl_chart.dart';
+import 'dart:math';
+
+import '../main.dart'; // Assuming TuruColors is defined here
 
 class BerandaPage extends StatelessWidget {
-  const BerandaPage({super.key});
+  final bool? isSleeping;
+  final DateTime? startTime;
+  final int? sleepScore;
+  final String? mascot;
+  final String? mascotName;
+  final String? mascotDescription;
+  final List<int>? weeklyScores;
+  final List<String>? dayLabels;
+
+  const BerandaPage({
+    super.key,
+    this.isSleeping,
+    this.startTime,
+    this.sleepScore,
+    this.mascot,
+    this.mascotName,
+    this.mascotDescription,
+    this.weeklyScores,
+    this.dayLabels,
+  });
 
   @override
   Widget build(BuildContext context) {
+    // ✅ Handle data null dengan fallback ke sample
+    final now = DateTime.now();
+    final fallbackWeeklyScores = [89, 76, 0, 65, 0, 95, 88];
+    final fallbackDayLabels = ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'];
+
+    final sleepState = isSleeping ?? false;
+    final sleepStartTime = startTime ?? now.subtract(const Duration(hours: 7));
+    final displayedSleepScore = sleepScore ?? 88;
+    final displayedMascot = mascot ?? '😴';
+    final displayedMascotName = mascotName ?? 'Sleepy Sloth';
+    final displayedMascotDesc =
+        mascotDescription ?? 'Kamu tidur nyenyak semalam!';
+    final displayedScores = weeklyScores ?? fallbackWeeklyScores;
+    final labels = dayLabels ?? fallbackDayLabels;
+
+    final todayIndex = now.weekday % 7;
+
     return Stack(
       children: [
         Positioned.fill(
@@ -25,34 +64,54 @@ class BerandaPage extends StatelessWidget {
               const SizedBox(height: 32),
 
               // Turu Button (State: false for now)
-              Column(
-                children: [
-                  ElevatedButton(
-                    onPressed: () {},
-                    style: ElevatedButton.styleFrom(
-                      shape: const CircleBorder(),
-                      padding: const EdgeInsets.all(32),
-                      backgroundColor: TuruColors.lilac,
-                      side: const BorderSide(
-                        color: TuruColors.purple,
-                        width: 4,
+              Center(
+                child: Column(
+                  children: [
+                    ElevatedButton(
+                      onPressed: () {},
+                      style: ElevatedButton.styleFrom(
+                        shape: const CircleBorder(),
+                        padding: const EdgeInsets.all(32),
+                        backgroundColor: TuruColors.lilac,
+                        side: const BorderSide(
+                          color: TuruColors.purple,
+                          width: 4,
+                        ),
+                      ),
+                      child: Text(
+                        sleepState ? '😴' : '😊',
+                        style: const TextStyle(fontSize: 64),
                       ),
                     ),
-                    child: const Text("😊", style: TextStyle(fontSize: 64)),
-                  ),
-                  const SizedBox(height: 12),
-                  const Text(
-                    "Tombol Tidur",
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
-                ],
+                    const SizedBox(height: 12),
+                    const Text(
+                      "Tombol Tidur",
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    if (sleepState)
+                      Text(
+                        "Mulai: ${sleepStartTime.hour}:${sleepStartTime.minute.toString().padLeft(2, '0')}",
+                        style: const TextStyle(color: TuruColors.textColor2),
+                      ),
+                    const SizedBox(height: 12),
+                    Text(
+                      sleepState ? "Sedang Tidur" : "Klik tombol untuk memulai",
+                      style: const TextStyle(fontSize: 16),
+                    ),
+                  ],
+                ),
               ),
 
               const SizedBox(height: 32),
 
               // Tips Button
               ElevatedButton.icon(
-                onPressed: () {},
+                onPressed: () {
+                  Navigator.pushNamed(context, '/tips');
+                },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: TuruColors.indigo,
                   padding: const EdgeInsets.symmetric(
@@ -72,12 +131,20 @@ class BerandaPage extends StatelessWidget {
               const SizedBox(height: 48),
               const _SectionTitle(title: "Data Tidur"),
               const SizedBox(height: 8),
-              const Text(
-                "Mulai: 17:49:28 - Selesai: 17:49:29",
-                style: TextStyle(color: TuruColors.textColor2),
+              Text(
+                startTime != null
+                    ? "Mulai: ${startTime!.hour}:${startTime!.minute.toString().padLeft(2, '0')}:${startTime!.second.toString().padLeft(2, '0')}"
+                    : "Mulai: -",
+                style: const TextStyle(color: TuruColors.textColor2),
+              ),
+              Text(
+                startTime != null
+                    ? "Selesai: ${now.hour}:${now.minute.toString().padLeft(2, '0')}:${now.second.toString().padLeft(2, '0')}"
+                    : "Selesai: -",
+                style: const TextStyle(color: TuruColors.textColor2),
               ),
               const Text(
-                "13 j 20m",
+                "13 j 20m", // Placeholder for duration calculation
                 style: TextStyle(fontSize: 32, fontWeight: FontWeight.w500),
               ),
 
@@ -86,52 +153,126 @@ class BerandaPage extends StatelessWidget {
               const SizedBox(height: 8),
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
-                children: const [
-                  Text("🐨", style: TextStyle(fontSize: 72)),
-                  SizedBox(width: 16),
+                children: [
+                  Text(displayedMascot, style: const TextStyle(fontSize: 72)),
+                  const SizedBox(width: 16),
                   Text(
-                    "69",
-                    style: TextStyle(fontSize: 40, fontWeight: FontWeight.w500),
+                    displayedSleepScore.toString(),
+                    style: const TextStyle(
+                      fontSize: 40,
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
                 ],
               ),
-              const Text(
-                "Koala Pemalas",
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.w500),
+              Text(
+                displayedMascotName,
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w500,
+                ),
               ),
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 32.0),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 32.0),
                 child: Text(
-                  "Anda telah tidur lebih dari 12 jam, tidur Anda melebihi batas normal.",
+                  displayedMascotDesc,
                   textAlign: TextAlign.center,
-                  style: TextStyle(color: TuruColors.textColor2),
+                  style: const TextStyle(color: TuruColors.textColor2),
                 ),
               ),
 
               const SizedBox(height: 48),
-              const _SectionTitle(title: "Statistik Tidur"),
-              const Text(
-                "16 Desember 2024 - 22 Desember 2024",
-                style: TextStyle(color: TuruColors.textColor2),
-              ),
-
-              const SizedBox(height: 24),
-              Container(
-                width: double.infinity,
-                height: 300,
-                decoration: BoxDecoration(
-                  color: TuruColors.blue,
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: const Center(
-                  child: Text(
-                    "(Area Statistik Placeholder)",
-                    style: TextStyle(color: Colors.white),
+              const _SectionTitle(title: "Statistik Tidur Mingguan"),
+              const SizedBox(height: 8),
+              AspectRatio(
+                aspectRatio: 1.6,
+                child: BarChart(
+                  BarChartData(
+                    titlesData: FlTitlesData(
+                      bottomTitles: AxisTitles(
+                        sideTitles: SideTitles(
+                          showTitles: true,
+                          getTitlesWidget: (value, _) {
+                            final index = value.toInt();
+                            return Text(
+                              labels[index],
+                              style: TextStyle(
+                                color:
+                                    index == todayIndex
+                                        ? TuruColors.pink
+                                        : Colors.grey[400],
+                                fontWeight:
+                                    index == todayIndex
+                                        ? FontWeight.bold
+                                        : FontWeight.normal,
+                              ),
+                            );
+                          },
+                          reservedSize: 28,
+                        ),
+                      ),
+                      leftTitles: AxisTitles(
+                        sideTitles: SideTitles(showTitles: false),
+                      ),
+                      rightTitles: AxisTitles(
+                        sideTitles: SideTitles(showTitles: false),
+                      ),
+                      topTitles: AxisTitles(
+                        sideTitles: SideTitles(showTitles: false),
+                      ),
+                    ),
+                    barGroups: List.generate(displayedScores.length, (index) {
+                      final score = displayedScores[index];
+                      final isToday = index == todayIndex;
+                      return BarChartGroupData(
+                        x: index,
+                        barRods: [
+                          BarChartRodData(
+                            toY: score == 0 ? 3 : score.toDouble(),
+                            width: 16,
+                            color: isToday ? TuruColors.pink : Colors.blue[300],
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                        ],
+                      );
+                    }),
+                    gridData: const FlGridData(show: false),
+                    borderData: FlBorderData(show: false),
                   ),
                 ),
               ),
+
               const SizedBox(height: 100),
             ],
+          ),
+        ),
+
+        // Floating Timer Button (Vertical Layout, larger)
+        Positioned(
+          bottom: 80,
+          right: 20,
+          child: SizedBox(
+            width: 80,
+            height: 80,
+            child: FloatingActionButton(
+              backgroundColor: TuruColors.pink,
+              onPressed: () {
+                // TODO: implement timer functionality
+              },
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: const [
+                  Icon(Icons.post_add, size: 28),
+                  SizedBox(height: 6),
+                  Text(
+                    "Tambah",
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600,
+                      ),
+                  ),
+                ],
+              ),
+            ),
           ),
         ),
       ],

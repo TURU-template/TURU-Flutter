@@ -46,7 +46,10 @@ class _RadioPageState extends State<RadioPage> {
     final bool isCurrentlyPlaying = _currentPlaying == label && _isPlaying;
     final Color buttonColor = isCurrentlyPlaying ? activeColor : Colors.white;
     final Color textColor = isCurrentlyPlaying ? Colors.white : activeColor;
-    final BorderSide borderSide = BorderSide(color: activeColor, width: 1.0);
+    final BorderSide borderSide = BorderSide(
+      color: activeColor,
+      width: 3.0,
+    ); // Increased border width
 
     return ElevatedButton(
       onPressed: () async {
@@ -72,16 +75,23 @@ class _RadioPageState extends State<RadioPage> {
       style: ElevatedButton.styleFrom(
         backgroundColor: buttonColor,
         foregroundColor: textColor,
-        padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 20),
+        padding: const EdgeInsets.symmetric(
+          vertical: 2,
+          horizontal: 16,
+        ), // Smaller vertical padding
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(12),
           side: !isCurrentlyPlaying ? borderSide : BorderSide.none,
         ),
         elevation: isCurrentlyPlaying ? 3 : 0,
+        minimumSize: Size.zero, // Make the button size adapt to content
+        tapTargetSize:
+            MaterialTapTargetSize
+                .shrinkWrap, // Remove extra padding around the button
       ),
       child: Text(
         '$label $emoji',
-        style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
       ),
     );
   }
@@ -100,9 +110,9 @@ class _RadioPageState extends State<RadioPage> {
           shrinkWrap: true,
           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: MediaQuery.of(context).size.width > 600 ? 3 : 2,
-            childAspectRatio: 2.5,
+            childAspectRatio: 3.0, // Adjust aspect ratio for smaller height
             crossAxisSpacing: 10,
-            mainAxisSpacing: 10,
+            mainAxisSpacing: 8, // Adjust main axis spacing
           ),
           itemCount: buttons.length,
           itemBuilder: (context, index) {
