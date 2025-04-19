@@ -15,7 +15,7 @@ environment:
 dependencies:
   shelf: ^1.4.0
   shelf_router: ^1.1.4
-  mysql1: ^0.20.0
+  mysql1: ^0.2.0
   bcrypt: ^1.1.3
   dotenv: ^4.0.1
-  mysql1: ^0.20.0  # Library koneksi MySQL
+  shelf_cors_headers: ^0.1.5

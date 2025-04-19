@@ -76,13 +76,18 @@ class _LoginPageState extends State<LoginPage> {
       }
     } catch (e) {
       // Tangkap error dari AuthService
-      setState(() {
-        // Tampilkan pesan error yang didapat dari backend/AuthService
-        _errorMessage = e.toString().replaceFirst(
-          'Exception: ',
-          '',
-        ); // Hapus prefix "Exception: "
-      });
+      if (mounted) {
+        // Tambahkan cek mounted di sini juga
+        setState(() {
+          // Tampilkan pesan error yang didapat dari backend/AuthService
+          _errorMessage = e.toString().replaceFirst(
+            'Exception: ',
+            '',
+          ); // Hapus prefix "Exception: "
+        });
+      } else {
+        print("Login error caught after widget disposed: $e");
+      }
     } finally {
       // Pastikan loading indicator berhenti meskipun error, jika widget masih mounted
       if (mounted) {
@@ -93,12 +98,14 @@ class _LoginPageState extends State<LoginPage> {
 
   // Login sebagai tamu (jika fitur ini masih relevan)
   void _loginAsGuest() {
+    print("Logging in as guest..."); // Tambahkan log untuk debugging
     // Langsung navigasi ke MainScreen tanpa autentikasi
     _navigateToMainScreen();
   }
 
   void _navigateToMainScreen() {
     // Ganti '/home' dengan '/main' sesuai definisi di main.dart
+    // Pastikan '/main' terdaftar di MaterialApp routes
     Navigator.pushReplacementNamed(context, '/main');
   }
 
@@ -228,14 +235,17 @@ class _LoginPageState extends State<LoginPage> {
                     child: const Text('Belum punya akun? Register di sini'),
                   ),
 
-                  // Tombol Login Tamu (jika perlu)
-                  /*
-                        const SizedBox(height: 10),
-                        TextButton(
-                           onPressed: _isLoading ? null : _loginAsGuest,
-                           child: const Text('Masuk sebagai Tamu'),
-                        ),
-                        */
+                  // --- TOMBOL LOGIN TAMU SEKARANG AKTIF ---
+                  const SizedBox(height: 10), // Beri sedikit jarak
+                  TextButton(
+                    // Panggil fungsi _loginAsGuest saat ditekan
+                    onPressed: _isLoading ? null : _loginAsGuest,
+                    child: const Text('Masuk sebagai Tamu'),
+                    // Anda bisa tambahkan style jika perlu
+                    // style: TextButton.styleFrom(foregroundColor: Colors.grey),
+                  ),
+
+                  // --- AKHIR TOMBOL LOGIN TAMU ---
                 ],
               ),
             ),

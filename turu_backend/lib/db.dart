@@ -17,32 +17,33 @@ class DatabaseService {
     if (caFileExists) {
       print(
           "Info: CA Certificate file found at $caCertPath. SSL connection will attempt validation.");
-      // Di mysql1 v0.20.0, kita tidak bisa langsung pass CA content.
-      // useSSL: true akan mencoba memvalidasi menggunakan trust store sistem
-      // atau mekanisme default driver.
     } else {
       print("Warning: CA Certificate file not found at $caCertPath.");
       print(
           "Warning: If Aiven requires a specific CA for SSL, connection might fail or be insecure.");
     }
 
+    // --- MODIFIKASI DIMULAI DI BAWAH INI ---
     return ConnectionSettings(
       host: env['DB_HOST']!,
       port: int.parse(env['DB_PORT']!),
       user: env['DB_USER']!,
       password: env['DB_PASS']!,
       db: env['DB_NAME']!,
-      // --- Aktifkan SSL ---
-      useSSL: true,
-      // --- Parameter caCertificate DIHAPUS karena tidak ada di v0.20.0 ---
-      // caCertificate: caCertContent, // <-- HAPUS BARIS INI
+      useSSL: true, // Tetap true karena Aiven mewajibkan
 
-      // Optional: Nonaktifkan verifikasi hostname jika perlu (kurang aman, coba hindari)
-      // skipServerVerification: true, // Parameter ini MUNGKIN tidak ada juga di v0.20.0
+      // --- TAMBAHAN: Nonaktifkan kompresi ---
+      useCompression: false,
 
-      // Sesuaikan timeout jika perlu
-      timeout: const Duration(seconds: 30),
+      // --- TAMBAHAN: Opsi untuk skip verifikasi SSL (Hanya untuk Debug!) ---
+      // Jika error 'packets out of order' masih ada, coba HAPUS tanda komentar '//'
+      // pada baris di bawah ini untuk tes. JANGAN gunakan di produksi!
+      // skipServerVerification: true,
+
+      // --- PERUBAHAN: Naikkan timeout ---
+      timeout: const Duration(seconds: 45), // Naikkan dari 30 ke 45 detik
     );
+    // --- MODIFIKASI SELESAI DI ATAS INI ---
   }
 
   Future<MySqlConnection> getConnection() async {

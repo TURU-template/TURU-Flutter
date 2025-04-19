@@ -1,11 +1,19 @@
-// TURU-Flutter/turu_mobile/lib/services/env.dart
-// This file contains database credentials - don't commit to version control
+// TURU-Flutter/turu_backend/lib/env.dart:
 
-const Map<String, String> env = {
-  'DB_HOST': 'your-aiven-host.aivencloud.com', // Replace with your Aiven host
-  'DB_PORT': '12345', // Replace with your Aiven port
-  'DB_USER': 'avnadmin', // Replace with your Aiven username (usually avnadmin)
-  'DB_PASS': 'your-password', // Replace with your Aiven password
-  'DB_NAME': 'defaultdb', // Replace with your Aiven database name
-  'SERVER_URL': 'http://localhost:8080', // Backend server URL
-};
+import 'package:dotenv/dotenv.dart';
+
+/// load .env sekali saja, sekaligus merge Platform.environment
+final env = DotEnv(includePlatformEnvironment: true)..load();
+
+// --- TAMBAHKAN DEBUG PRINT DI SINI ---
+void printEnvVariables() {
+  print("--- Reading .env variables ---");
+  print("DB_HOST from env: ${env['DB_HOST']}");
+  print("DB_PORT from env: ${env['DB_PORT']}");
+  print("DB_USER from env: ${env['DB_USER']}");
+  // Jangan print password di log produksi, tapi boleh untuk debug sementara
+  // print("DB_PASS from env: ${env['DB_PASS']}");
+  print("DB_NAME from env: ${env['DB_NAME']}");
+  print("--- Finished reading .env ---");
+}
+// --- AKHIR TAMBAHAN DEBUG PRINT ---
