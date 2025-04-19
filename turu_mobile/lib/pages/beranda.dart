@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'main.dart';
+import '../main.dart';
 
 class BerandaPage extends StatelessWidget {
   const BerandaPage({super.key});
