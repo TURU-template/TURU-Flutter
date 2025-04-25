@@ -6,6 +6,10 @@ import 'pages/beranda.dart';
 import 'pages/radio.dart';
 import 'pages/profil.dart';
 import 'pages/login.dart';
+import 'pages/profile_details.dart';
+import 'pages/edit_profil.dart';
+import 'pages/edit_password.dart';
+import 'pages/history_page.dart';
 
 void main() {
   runApp(const TuruApp());
@@ -49,7 +53,15 @@ class TuruApp extends StatelessWidget {
         highlightColor: Colors.transparent,
       ),
       home: const LoginPage(), // Change initial route to LoginPage
-      routes: {'/main': (context) => const MainScreen()},
+      routes: {
+        '/main': (context) => const MainScreen(),
+        '/profile_details': (context) => const ProfileDetailsPage(),
+        '/edit_profil': (context) => const EditProfilPage(),
+        '/edit_password': (context) => const EditPasswordPage(),
+        '/history': (context) {
+          return HistorySleepPage(scores: [88, 90, 75, 80, 92, 85, 70]);
+        },
+      },
     );
   }
 }
