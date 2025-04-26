@@ -74,14 +74,35 @@ class ProfilPage extends StatelessWidget {
       child: Column(
         children: [
           const SizedBox(height: 64),
-          GestureDetector(
-            onTap: () {
-              Navigator.pushNamed(context, '/profile_details');
-            },
-            child: const CircleAvatar(
-              radius: 50,
-              backgroundImage: AssetImage('assets/images/LOGO_Turu.png'),
-            ),
+          Stack(
+            children: [
+              GestureDetector(
+                onTap: () {
+                  Navigator.pushNamed(context, '/profile_details');
+                },
+                child: const CircleAvatar(
+                  radius: 50,
+                  backgroundImage: AssetImage('assets/images/LOGO_Turu.png'),
+                ),
+              ),
+              Positioned(
+                bottom: 0,
+                right: 0,
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: TuruColors.pink,
+                    shape: BoxShape.circle,
+                    border: Border.all(color:  TuruColors.primaryBackground, width: 5),
+                  ),
+                  padding: const EdgeInsets.all(6),
+                  child: const Icon(
+                    BootstrapIcons.pencil,
+                    size: 16,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 16),
           const Center(
