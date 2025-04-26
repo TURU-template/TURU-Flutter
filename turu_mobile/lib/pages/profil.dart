@@ -1,9 +1,35 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:bootstrap_icons/bootstrap_icons.dart';
 import '../../main.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
-class ProfilPage extends StatelessWidget {
+class ProfilPage extends StatefulWidget {
   const ProfilPage({super.key});
+
+  @override
+  State<ProfilPage> createState() => _ProfilPageState();
+}
+
+class _ProfilPageState extends State<ProfilPage> {
+  File? _profileImage;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadProfileImage(); // Load the profile image when the page is initialized
+  }
+
+  Future<void> _loadProfileImage() async {
+    final prefs = await SharedPreferences.getInstance();
+    final path = prefs.getString('profile_image_path');
+    if (path != null) {
+      setState(() {
+        _profileImage = File(path);
+      });
+    }
+  }
 
   void _showConfirmationDialog({
     required BuildContext context,
@@ -67,6 +93,51 @@ class ProfilPage extends StatelessWidget {
     );
   }
 
+  // Fungsi untuk ambil gambar
+  Future<void> _pickImage(ImageSource source) async {
+    final picker = ImagePicker();
+    final pickedFile = await picker.pickImage(source: source);
+
+    if (pickedFile != null) {
+      setState(() {
+        _profileImage = File(pickedFile.path);
+      });
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('profile_image_path', pickedFile.path);
+    }
+  }
+
+  // Fungsi untuk menampilkan pilihan kamera atau galeri
+  void _showPickImageDialog() {
+    showModalBottomSheet(
+      context: context,
+      builder: (BuildContext context) {
+        return SafeArea(
+          child: Wrap(
+            children: <Widget>[
+              ListTile(
+                leading: const Icon(Icons.photo_camera),
+                title: const Text('Kamera'),
+                onTap: () {
+                  Navigator.of(context).pop();
+                  _pickImage(ImageSource.camera);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.photo_library),
+                title: const Text('Galeri'),
+                onTap: () {
+                  Navigator.of(context).pop();
+                  _pickImage(ImageSource.gallery);
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
@@ -75,12 +146,13 @@ class ProfilPage extends StatelessWidget {
         children: [
           const SizedBox(height: 64),
           GestureDetector(
-            onTap: () {
-              Navigator.pushNamed(context, '/profile_details');
-            },
-            child: const CircleAvatar(
+            onTap: _showPickImageDialog, // Munculkan pilihan foto
+            child: CircleAvatar(
               radius: 50,
-              backgroundImage: AssetImage('assets/images/LOGO_Turu.png'),
+              backgroundImage: _profileImage != null
+                  ? FileImage(_profileImage!)
+                  : const AssetImage('assets/images/LOGO_Turu.png')
+                      as ImageProvider,
             ),
           ),
           const SizedBox(height: 16),
