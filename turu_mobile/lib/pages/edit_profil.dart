@@ -24,7 +24,7 @@ class EditProfilPage extends StatelessWidget {
           children: [
             const Text(
               'Nama Lama',
-              style: TextStyle(color: Colors.white70, fontSize: 14),
+              style: TextStyle(color: Colors.white, fontSize: 14),
             ),
             const SizedBox(height: 8),
             TextField(
@@ -48,7 +48,7 @@ class EditProfilPage extends StatelessWidget {
             const SizedBox(height: 24),
             const Text(
               'Nama Baru',
-              style: TextStyle(color: Colors.white70, fontSize: 14),
+              style: TextStyle(color: Colors.white, fontSize: 14),
             ),
             const SizedBox(height: 8),
             TextField(

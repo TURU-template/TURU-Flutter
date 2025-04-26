@@ -24,7 +24,7 @@ class EditPasswordPage extends StatelessWidget {
           children: [
             const Text(
               'Password Lama',
-              style: TextStyle(color: Colors.white70, fontSize: 14),
+              style: TextStyle(color: Colors.white, fontSize: 14),
             ),
             const SizedBox(height: 8),
             TextField(
@@ -48,7 +48,7 @@ class EditPasswordPage extends StatelessWidget {
             const SizedBox(height: 24),
             const Text(
               'Password Baru',
-              style: TextStyle(color: Colors.white70, fontSize: 14),
+              style: TextStyle(color: Colors.white, fontSize: 14),
             ),
             const SizedBox(height: 8),
             TextField(
