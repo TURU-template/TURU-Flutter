@@ -6,7 +6,7 @@ import 'pages/beranda.dart';
 import 'pages/radio.dart';
 import 'pages/profil.dart';
 import 'pages/login.dart';
-import 'pages/profile_details.dart';
+import 'pages/detail_profil.dart';
 import 'pages/edit_profil.dart';
 import 'pages/edit_password.dart';
 import 'pages/history_page.dart';

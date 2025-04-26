@@ -146,13 +146,12 @@ class _ProfilPageState extends State<ProfilPage> {
         children: [
           const SizedBox(height: 64),
           GestureDetector(
-            onTap: _showPickImageDialog, // Munculkan pilihan foto
-            child: CircleAvatar(
+            onTap: () {
+              Navigator.pushNamed(context, '/profile_details');
+            },
+            child: const CircleAvatar(
               radius: 50,
-              backgroundImage: _profileImage != null
-                  ? FileImage(_profileImage!)
-                  : const AssetImage('assets/images/LOGO_Turu.png')
-                      as ImageProvider,
+              backgroundImage: AssetImage('assets/images/LOGO_Turu.png'),
             ),
           ),
           const SizedBox(height: 16),
