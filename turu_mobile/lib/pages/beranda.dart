@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:turu_mobile/pages/listview_history.dart';
 import 'dart:math';
 
 import '../main.dart'; // Assuming TuruColors is defined here
@@ -239,6 +240,28 @@ class BerandaPage extends StatelessWidget {
                     gridData: const FlGridData(show: false),
                     borderData: FlBorderData(show: false),
                   ),
+                ),
+              ),
+              const SizedBox(height: 24),
+              // Tombol Lihat Riwayat Tidur
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => SleepHistoryPage()),
+                  );
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: TuruColors.indigo,
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  elevation: 4,
+                ),
+                child: const Text(
+                  "Lihat Riwayat Tidur",
+                  style: TextStyle(fontSize: 16, color: Colors.white),
                 ),
               ),
 

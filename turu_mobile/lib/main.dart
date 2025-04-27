@@ -9,7 +9,7 @@ import 'pages/login.dart';
 import 'pages/detail_profil.dart';
 import 'pages/edit_profil.dart';
 import 'pages/edit_password.dart';
-import 'pages/history_page.dart';
+import 'pages/sleep_history_page.dart';
 
 void main() {
   runApp(const TuruApp());
