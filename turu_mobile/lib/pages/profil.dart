@@ -4,6 +4,7 @@ import 'package:bootstrap_icons/bootstrap_icons.dart';
 import '../../main.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:permission_handler/permission_handler.dart'; // <-- tambahan ini
 
 class ProfilPage extends StatefulWidget {
   const ProfilPage({super.key});
@@ -18,7 +19,7 @@ class _ProfilPageState extends State<ProfilPage> {
   @override
   void initState() {
     super.initState();
-    _loadProfileImage(); // Load the profile image when the page is initialized
+    _loadProfileImage();
   }
 
   Future<void> _loadProfileImage() async {
@@ -93,8 +94,21 @@ class _ProfilPageState extends State<ProfilPage> {
     );
   }
 
-  // Fungsi untuk ambil gambar
+  // Fungsi untuk ambil gambar, sudah minta izin kamera
   Future<void> _pickImage(ImageSource source) async {
+    if (source == ImageSource.camera) {
+      var status = await Permission.camera.status;
+      if (!status.isGranted) {
+        status = await Permission.camera.request();
+        if (!status.isGranted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Izin kamera ditolak')),
+          );
+          return;
+        }
+      }
+    }
+
     final picker = ImagePicker();
     final pickedFile = await picker.pickImage(source: source);
 
@@ -107,7 +121,6 @@ class _ProfilPageState extends State<ProfilPage> {
     }
   }
 
-  // Fungsi untuk menampilkan pilihan kamera atau galeri
   void _showPickImageDialog() {
     showModalBottomSheet(
       context: context,
@@ -149,10 +162,15 @@ class _ProfilPageState extends State<ProfilPage> {
             onTap: () {
               Navigator.pushNamed(context, '/profile_details');
             },
-            child: const CircleAvatar(
-              radius: 50,
-              backgroundImage: AssetImage('assets/images/LOGO_Turu.png'),
-            ),
+            child: _profileImage != null
+                ? CircleAvatar(
+                    radius: 50,
+                    backgroundImage: FileImage(_profileImage!),
+                  )
+                : const CircleAvatar(
+                    radius: 50,
+                    backgroundImage: AssetImage('assets/images/LOGO_Turu.png'),
+                  ),
           ),
           const SizedBox(height: 16),
           const Center(
