@@ -10,8 +10,10 @@ import 'pages/detail_profil.dart';
 import 'pages/edit_profil.dart';
 import 'pages/edit_password.dart';
 import 'pages/sleep_history_page.dart';
+import 'pages/sleep_reminder_page.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
   runApp(const TuruApp());
 }
 
@@ -58,6 +60,7 @@ class TuruApp extends StatelessWidget {
         '/profile_details': (context) => const ProfileDetailsPage(),
         '/edit_profil': (context) => const EditProfilPage(),
         '/edit_password': (context) => const EditPasswordPage(),
+        '/sleep_reminder': (context) => const SleepReminderPage(),
         '/history': (context) {
           return HistorySleepPage(scores: [88, 90, 75, 80, 92, 85, 70]);
         },

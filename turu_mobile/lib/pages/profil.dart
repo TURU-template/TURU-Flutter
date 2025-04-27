@@ -188,6 +188,14 @@ class _ProfilPageState extends State<ProfilPage> {
           ),
           const SizedBox(height: 8),
           _settingItem(
+            icon: BootstrapIcons.alarm,
+            label: 'Ingatkan Tidur',
+            color: TuruColors.indigo,
+            onTap: () {
+              Navigator.pushNamed(context, '/sleep_reminder');
+            },
+          ),
+          _settingItem(
             icon: BootstrapIcons.trash,
             label: 'Hapus Rekaman Tidur',
             color: TuruColors.pink,
