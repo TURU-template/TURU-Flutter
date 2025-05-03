@@ -10,8 +10,16 @@ import 'pages/detail_profil.dart';
 import 'pages/edit_profil.dart';
 import 'pages/edit_password.dart';
 import 'pages/sleep_history_page.dart';
+// Import the notification service
+import 'services/notification_service.dart';
 
-void main() {
+Future<void> main() async {
+  // Ensure Flutter bindings are initialized
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize the NotificationService
+  await NotificationService().initialize();
+
   runApp(const TuruApp());
 }
 

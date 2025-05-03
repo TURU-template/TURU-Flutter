@@ -204,6 +204,7 @@ class _RadioPageState extends State<RadioPage> {
               width: 80,
               height: 80,
               child: FloatingActionButton(
+                heroTag: null, // Add unique heroTag
                 backgroundColor: TuruColors.pink,
                 onPressed: () {
                   // TODO: implement timer functionality

@@ -36,8 +36,10 @@ dependencies:
   intl: ^0.18.0  # Untuk format tanggal dan waktu
   http: ^1.0.0  # Untuk melakukan request HTTP
   image_picker: ^1.0.4
-  shared_preferences: ^2.0.0
+  shared_preferences: ^2.5.3
   permission_handler: ^11.3.1
+  flutter_local_notifications: ^18.0.1 # Added for local notifications
+  timezone: ^0.9.3 # Added for timezone support
 
 
   flutter:

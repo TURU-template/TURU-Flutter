@@ -169,7 +169,10 @@ class _BerandaPageState extends State<BerandaPage> {
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: TuruColors.indigo,
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 12,
+                  ),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(8),
                   ),
@@ -194,15 +197,18 @@ class _BerandaPageState extends State<BerandaPage> {
                 isSleeping
                     ? "Selesai: -"
                     : sleepStartTime != null
-                        ? "Selesai: ${now.hour}:${now.minute.toString().padLeft(2, '0')}:${now.second.toString().padLeft(2, '0')}"
-                        : "Selesai: -",
+                    ? "Selesai: ${now.hour}:${now.minute.toString().padLeft(2, '0')}:${now.second.toString().padLeft(2, '0')}"
+                    : "Selesai: -",
                 style: const TextStyle(color: TuruColors.textColor2),
               ),
               Text(
                 sleepStartTime != null
                     ? _formatDuration(sleepDuration)
                     : "Durasi: -",
-                style: const TextStyle(fontSize: 32, fontWeight: FontWeight.w500),
+                style: const TextStyle(
+                  fontSize: 32,
+                  fontWeight: FontWeight.w500,
+                ),
               ),
 
               const SizedBox(height: 48),
@@ -225,7 +231,10 @@ class _BerandaPageState extends State<BerandaPage> {
               ),
               Text(
                 displayedMascotName,
-                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w500),
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w500,
+                ),
               ),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 32.0),
@@ -253,12 +262,14 @@ class _BerandaPageState extends State<BerandaPage> {
                             return Text(
                               labels[index],
                               style: TextStyle(
-                                color: index == todayIndex
-                                    ? TuruColors.pink
-                                    : Colors.grey[400],
-                                fontWeight: index == todayIndex
-                                    ? FontWeight.bold
-                                    : FontWeight.normal,
+                                color:
+                                    index == todayIndex
+                                        ? TuruColors.pink
+                                        : Colors.grey[400],
+                                fontWeight:
+                                    index == todayIndex
+                                        ? FontWeight.bold
+                                        : FontWeight.normal,
                               ),
                             );
                           },
@@ -306,7 +317,10 @@ class _BerandaPageState extends State<BerandaPage> {
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: TuruColors.indigo,
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 12,
+                  ),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(8),
                   ),
@@ -331,6 +345,7 @@ class _BerandaPageState extends State<BerandaPage> {
             width: 80,
             height: 80,
             child: FloatingActionButton(
+              heroTag: null, // Add unique heroTag
               backgroundColor: TuruColors.pink,
               onPressed: () {
                 // TODO: implement timer functionality
