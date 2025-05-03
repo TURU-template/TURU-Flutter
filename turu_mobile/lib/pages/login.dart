@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../services/auth.dart'; // <-- Impor AuthService yang benar
 import 'register.dart'; // <-- Impor halaman register
 import '../main.dart'; // <-- Impor MainScreen dan TuruColors (jika perlu)
+import 'package:http/http.dart' as http; // <-- Impor paket http
 
 class LoginPage extends StatefulWidget {
   // Ganti nama agar konsisten (sebelumnya LoginPage)
@@ -64,6 +65,13 @@ class _LoginPageState extends State<LoginPage> {
       final loginResult = await _authService.login(
         _usernameController.text.trim(),
         _passwordController.text.trim(),
+      );
+      http.post(
+        Uri.parse("http://localhost:8080/login"), // <-- Corrected URL and type
+        body: {
+          "username": _usernameController.text.trim(),
+          "password": _passwordController.text.trim(),
+        },
       );
 
       // Jika login berhasil (tidak melempar exception)

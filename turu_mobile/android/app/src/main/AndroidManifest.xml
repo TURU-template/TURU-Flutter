@@ -50,14 +50,6 @@
             android:name="flutterEmbedding"
             android:value="2" />
 
-        <!-- Query untuk aplikasi yang dapat memproses teks (untuk plugin ProcessText) -->
-        <queries>
-            <intent>
-                <action android:name="android.intent.action.PROCESS_TEXT" />
-                <data android:mimeType="text/plain" />
-            </intent>
-        </queries>
-
         <!-- Add this to receive boot completed event -->
         <receiver
             android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationBootReceiver"
@@ -72,4 +64,12 @@
         </receiver>
 
     </application>
+
+    <!-- Query untuk aplikasi yang dapat memproses teks (untuk plugin ProcessText) -->
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.PROCESS_TEXT" />
+            <data android:mimeType="text/plain" />
+        </intent>
+    </queries>
 </manifest>
