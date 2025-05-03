@@ -197,7 +197,8 @@ class _ProfilPageState extends State<ProfilPage> {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_reminderPrefsKeyHour);
     await prefs.remove(_reminderPrefsKeyMinute);
-    await _notificationService.cancelNotification(_reminderNotificationId);
+    // No need to cancel zonedSchedule notification anymore
+    // await _notificationService.cancelNotification(_reminderNotificationId);
     _countdownTimer?.cancel();
     setState(() {
       _reminderTime = null;
@@ -242,13 +243,14 @@ class _ProfilPageState extends State<ProfilPage> {
         _reminderTime = picked;
       });
       await _saveReminderTime(picked);
-      await _notificationService.scheduleDailyNotification(
-        id: _reminderNotificationId,
-        title: '😴 Waktunya Tidur!',
-        body: 'Sudah waktunya untuk istirahat. Selamat tidur!',
-        scheduledTime: picked,
-      );
-      _startCountdown(); // Restart countdown with new time
+      // Don't use zonedSchedule here anymore. The timer will handle it.
+      // await _notificationService.scheduleDailyNotification(
+      //   id: _reminderNotificationId,
+      //   title: '😴 Waktunya Tidur!',
+      //   body: 'Sudah waktunya untuk istirahat. Selamat tidur!',
+      //   scheduledTime: picked,
+      // );
+      _startCountdown(); // Start/Restart countdown timer which will trigger the notification
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
@@ -303,16 +305,36 @@ class _ProfilPageState extends State<ProfilPage> {
 
     final Duration remaining = scheduledDateTime.difference(now);
 
-    // print("Updating countdown text for duration: $remaining"); // Log update attempt
-    if (mounted) {
-      // Check if the widget is still in the tree
+    // Check if the timer has reached zero and is still active
+    if (remaining.inSeconds <= 0 && (_countdownTimer?.isActive ?? false)) {
+      print("Countdown finished. Triggering notification...");
+      _countdownTimer?.cancel(); // Stop the current timer
+
+      // Show the notification immediately
+      _notificationService.showImmediateNotification(
+        id: _reminderNotificationId, // Use the reminder ID
+        title: '😴 Waktunya Tidur!',
+        body: 'Sudah waktunya untuk istirahat. Selamat tidur!',
+        payload: 'Sleep Reminder Triggered',
+      );
+
+      // Restart the countdown for the next day immediately
+      // Use a short delay to ensure state updates settle if needed, though likely not required
+      Future.delayed(const Duration(milliseconds: 100), () {
+        if (mounted) {
+          print("Restarting countdown for the next day...");
+          _startCountdown();
+        }
+      });
+    } else if (mounted) {
+      // Update the countdown text if timer is still running
       setState(() {
         _countdownText = _formatDuration(remaining);
-        // print("setState called. New _countdownText: $_countdownText"); // Log setState
       });
     } else {
-      print("Countdown update skipped: widget not mounted."); // Log skip
-      _countdownTimer?.cancel(); // Stop timer if widget is disposed
+      // Widget is disposed, cancel timer
+      print("Countdown update skipped: widget not mounted.");
+      _countdownTimer?.cancel();
     }
   }
 
@@ -385,7 +407,7 @@ class _ProfilPageState extends State<ProfilPage> {
           const SizedBox(height: 8),
           // --- Sleep Reminder Section ---
           _buildReminderSection(), // Add the reminder UI
-          const Divider(color: Colors.white24, height: 1), // Optional separator
+          // --- Test Notification Button Removed ---
           // --- End Sleep Reminder Section ---
           _settingItem(
             icon: BootstrapIcons.trash,

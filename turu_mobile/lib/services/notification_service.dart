@@ -5,6 +5,7 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 // but let's try it to see if it resolves the Time class issue.
 // If this fails, we'll switch to using TimeOfDay.
 // import 'package:flutter_local_notifications/src/types.dart';
+import 'package:permission_handler/permission_handler.dart'; // Import permission_handler
 import 'package:timezone/data/latest_all.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
 
@@ -57,8 +58,29 @@ class NotificationService {
       onDidReceiveBackgroundNotificationResponse: notificationTapBackground,
     );
 
+    // --- Explicitly create the notification channel ---
+    final AndroidFlutterLocalNotificationsPlugin? androidImplementation =
+        flutterLocalNotificationsPlugin
+            .resolvePlatformSpecificImplementation<
+              AndroidFlutterLocalNotificationsPlugin
+            >();
+    if (androidImplementation != null) {
+      const AndroidNotificationChannel channel = AndroidNotificationChannel(
+        'daily_sleep_reminder_channel', // Channel ID (must match the one used in scheduleDailyNotification)
+        'Daily Sleep Reminders', // Channel Name
+        description:
+            'Channel for daily sleep reminder notifications.', // Channel Description
+        importance: Importance.max,
+      );
+      await androidImplementation.createNotificationChannel(channel);
+      print("Created notification channel: ${channel.id}");
+    }
+    // --- End channel creation ---
+
     // Request Android 13+ notification permission
     await _requestAndroidPermissions();
+    // Request ignore battery optimizations permission
+    await _requestBatteryOptimizationPermission();
   }
 
   Future<void> _requestAndroidPermissions() async {
@@ -76,6 +98,18 @@ class NotificationService {
       final bool? exactAlarmGranted =
           await androidImplementation.requestExactAlarmsPermission();
       print('Exact alarm permission granted: $exactAlarmGranted');
+    }
+  }
+
+  Future<void> _requestBatteryOptimizationPermission() async {
+    // Request permission to ignore battery optimizations
+    PermissionStatus status =
+        await Permission.ignoreBatteryOptimizations.status;
+    print('Ignore battery optimizations status: $status');
+    if (!status.isGranted) {
+      PermissionStatus requestedStatus =
+          await Permission.ignoreBatteryOptimizations.request();
+      print('Ignore battery optimizations requested status: $requestedStatus');
     }
   }
 
@@ -152,6 +186,42 @@ class NotificationService {
     await flutterLocalNotificationsPlugin.cancelAll();
     print('Cancelled all notifications');
   }
+
+  // --- Test Function ---
+  Future<void> showImmediateNotification({
+    int id = 99, // Use a different ID for testing
+    String title = "Test Notifikasi",
+    String body = "Berhasil!",
+    String payload = "Test Payload",
+  }) async {
+    print('Attempting to show immediate notification...');
+    const NotificationDetails notificationDetails = NotificationDetails(
+      android: AndroidNotificationDetails(
+        'test_channel', // Use a different channel for testing if desired
+        'Test Notifications',
+        channelDescription: 'Channel for immediate test notifications',
+        importance: Importance.max,
+        priority: Priority.high,
+        icon: '@mipmap/ic_launcher',
+      ),
+      iOS: DarwinNotificationDetails(
+        presentSound: true,
+        presentBadge: true,
+        presentAlert: true,
+      ),
+    );
+
+    await flutterLocalNotificationsPlugin.show(
+      id,
+      title,
+      body,
+      notificationDetails,
+      payload: payload,
+    );
+    print('Immediate notification shown.');
+  }
+
+  // --- End Test Function ---
 }
 
 // Top-level function for background notification tap handling
