@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:audioplayers/audioplayers.dart';
 import '../../main.dart';
+import 'dart:async';
 
 class RadioPage extends StatefulWidget {
   const RadioPage({super.key});
@@ -14,6 +15,12 @@ class _RadioPageState extends State<RadioPage> {
   final AudioPlayer _audioPlayer = AudioPlayer();
   String? _currentPlaying;
   bool _isPlaying = false;
+
+  Timer? _timer;
+  int? _remainingSeconds;
+  int? _selectedDuration;
+
+  bool _showTimerOptions = false;
 
   final Map<String, String> soundSources = {
     // Derau Warna
@@ -128,9 +135,45 @@ class _RadioPageState extends State<RadioPage> {
     );
   }
 
+  void _startTimer(int seconds) {
+    _timer?.cancel();
+    setState(() {
+      _remainingSeconds = seconds;
+      _selectedDuration = seconds;
+    });
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (_remainingSeconds == null) return;
+      if (_remainingSeconds! > 0) {
+        setState(() {
+          _remainingSeconds = _remainingSeconds! - 1;
+        });
+      } else {
+        _stopAudioAndTimer();
+      }
+    });
+  }
+
+  void _stopAudioAndTimer() async {
+    await _audioPlayer.stop();
+    _timer?.cancel();
+    setState(() {
+      _isPlaying = false;
+      _currentPlaying = null;
+      _remainingSeconds = null;
+      _selectedDuration = null;
+    });
+  }
+
+  String _formatDuration(int seconds) {
+    final m = (seconds ~/ 60).toString().padLeft(2, '0');
+    final s = (seconds % 60).toString().padLeft(2, '0');
+    return '$m:$s';
+  }
+
   @override
   void dispose() {
     _audioPlayer.dispose();
+    _timer?.cancel();
     super.dispose();
   }
 
@@ -196,6 +239,25 @@ class _RadioPageState extends State<RadioPage> {
             ),
           ),
 
+          // Timer Options (floating left of timer button)
+          if (_showTimerOptions && _remainingSeconds == null)
+            Positioned(
+              bottom: 80,
+              right: 120, // Geser ke kiri dari tombol timer
+              child: Material(
+                color: Colors.transparent,
+                child: Row(
+                  children: [
+                    _buildTimerOption(5),
+                    const SizedBox(width: 12),
+                    _buildTimerOption(10),
+                    const SizedBox(width: 12),
+                    _buildTimerOption(15),
+                  ],
+                ),
+              ),
+            ),
+
           // Floating Timer Button (Vertical Layout, larger)
           Positioned(
             bottom: 80,
@@ -207,17 +269,28 @@ class _RadioPageState extends State<RadioPage> {
                 heroTag: null, // Add unique heroTag
                 backgroundColor: TuruColors.pink,
                 onPressed: () {
-                  // TODO: implement timer functionality
+                  if (_remainingSeconds != null) {
+                    _stopAudioAndTimer();
+                    setState(() {
+                      _showTimerOptions = false;
+                    });
+                  } else {
+                    setState(() {
+                      _showTimerOptions = !_showTimerOptions;
+                    });
+                  }
                 },
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   mainAxisAlignment: MainAxisAlignment.center,
-                  children: const [
-                    Icon(Icons.timer, size: 28),
-                    SizedBox(height: 6),
+                  children: [
+                    const Icon(Icons.timer, size: 28),
+                    const SizedBox(height: 6),
                     Text(
-                      "Timer",
-                      style: TextStyle(
+                      _remainingSeconds != null
+                          ? _formatDuration(_remainingSeconds!)
+                          : "Timer",
+                      style: const TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
                       ),
@@ -229,6 +302,29 @@ class _RadioPageState extends State<RadioPage> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildTimerOption(int minutes) {
+    final bool isSelected = _selectedDuration == minutes * 60;
+    return ElevatedButton(
+      onPressed: () {
+        _startTimer(minutes * 60);
+        setState(() {
+          _showTimerOptions = false;
+        });
+      },
+      style: ElevatedButton.styleFrom(
+        backgroundColor: TuruColors.pink,
+        foregroundColor: Colors.white,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+        elevation: isSelected ? 4 : 0,
+        textStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+      ),
+      child: Text('${minutes}m'),
     );
   }
 }
