@@ -91,8 +91,27 @@ class _RegisterPageState extends State<RegisterPage> {
     } catch (e) {
       // Tangkap error dari AuthService
       if (mounted) {
+        // Map backend error messages to Indonesian
+        String errorMsg = e.toString().replaceFirst('Exception: ', '');
+        if (errorMsg.contains('Username and password are required')) {
+          errorMsg = 'Username dan password harus diisi';
+        } else if (errorMsg.contains('Username already exists')) {
+          errorMsg = 'Username sudah terdaftar';
+        } else if (errorMsg.contains('Invalid request format')) {
+          errorMsg = 'Format permintaan tidak valid';
+        } else if (errorMsg.contains('Database error during registration')) {
+          errorMsg = 'Kesalahan basis data saat registrasi';
+        } else if (errorMsg.contains('Registration failed')) {
+          errorMsg = 'Registrasi gagal, silakan coba lagi';
+        } else if (errorMsg.contains('Cannot connect to server')) {
+          errorMsg = 'Tidak dapat menghubungi server. Periksa koneksi.';
+        } else if (errorMsg.contains('Connection refused')) {
+          errorMsg = 'Koneksi ditolak oleh server.';
+        } else if (errorMsg.toLowerCase().contains('timeout')) {
+          errorMsg = 'Koneksi ke server timeout.';
+        }
         setState(() {
-          _errorMessage = e.toString().replaceFirst('Exception: ', '');
+          _errorMessage = errorMsg;
         });
       }
     } finally {
@@ -190,6 +209,32 @@ class _RegisterPageState extends State<RegisterPage> {
                           validator: (val) {
                             if (val == null || val.isEmpty) return 'Password tidak boleh kosong';
                             if (val.length < 6) return 'Password minimal 6 karakter';
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 16),
+                        // Konfirmasi Password
+                        TextFormField(
+                          controller: _confirmPasswordController,
+                          decoration: InputDecoration(
+                            hintText: 'Konfirmasi Password',
+                            hintStyle: TextStyle(color: Colors.grey),
+                            filled: true,
+                            fillColor: Colors.white,
+                            prefixIcon: Padding(
+                              padding: const EdgeInsets.all(12.0),
+                              child: Icon(Icons.key, color: Colors.amber),
+                            ),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide.none,
+                            ),
+                          ),
+                          style: TextStyle(color: Colors.black),
+                          obscureText: true,
+                          validator: (val) {
+                            if (val == null || val.isEmpty) return 'Konfirmasi password tidak boleh kosong';
+                            if (val != _passwordController.text) return 'Password dan konfirmasi tidak cocok';
                             return null;
                           },
                         ),

@@ -66,16 +66,9 @@ class _LoginPageState extends State<LoginPage> {
         _usernameController.text.trim(),
         _passwordController.text.trim(),
       );
-      http.post(
-        Uri.parse("http://localhost:8080/login"), // <-- Corrected URL and type
-        body: {
-          "username": _usernameController.text.trim(),
-          "password": _passwordController.text.trim(),
-        },
-      );
 
       // Jika login berhasil (tidak melempar exception)
-      // Simpan status login (AuthService perlu dimodifikasi untuk ini)
+      // Simpan status login
       await _authService.setLoggedIn(loginResult); // Tandai user sudah login
 
       // Navigasi ke halaman utama jika masih dalam context widget
@@ -85,13 +78,21 @@ class _LoginPageState extends State<LoginPage> {
     } catch (e) {
       // Tangkap error dari AuthService
       if (mounted) {
-        // Tambahkan cek mounted di sini juga
+        // Map messages and set localized error
+        String errorMsg = e.toString().replaceFirst('Exception: ', '');
+        if (errorMsg.contains('Invalid username or password')) {
+          errorMsg = 'Username atau password salah';
+        } else if (errorMsg.contains('Username and password are required')) {
+          errorMsg = 'Username dan password harus diisi';
+        } else if (errorMsg.contains('Cannot connect to server')) {
+          errorMsg = 'Tidak dapat menghubungi server. Periksa koneksi.';
+        } else if (errorMsg.contains('Connection refused')) {
+          errorMsg = 'Koneksi ditolak oleh server.';
+        } else if (errorMsg.contains('Connection timed out')) {
+          errorMsg = 'Koneksi ke server timeout.';
+        }
         setState(() {
-          // Tampilkan pesan error yang didapat dari backend/AuthService
-          _errorMessage = e.toString().replaceFirst(
-            'Exception: ',
-            '',
-          ); // Hapus prefix "Exception: "
+          _errorMessage = errorMsg;
         });
       } else {
         print("Login error caught after widget disposed: $e");

@@ -9,6 +9,7 @@ import 'package:permission_handler/permission_handler.dart';
 import '../services/notification_service.dart'; // Import NotificationService
 import 'package:timezone/timezone.dart'
     as tz; // Import timezone for calculations
+import '../services/auth.dart'; // Import AuthService for logout
 
 class ProfilPage extends StatefulWidget {
   const ProfilPage({Key? key}) : super(key: key);
@@ -346,6 +347,16 @@ class _ProfilPageState extends State<ProfilPage> {
     return "$hours:$minutes:$seconds";
   }
 
+  // Add logout helper: call AuthService.logout and clear stored prefs
+  Future<void> _performLogout() async {
+    await AuthService().logout();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('profile_image_path');
+    if (mounted) {
+      Navigator.pushReplacementNamed(context, '/login');
+    }
+  }
+
   // --- End Reminder Functions ---
 
   @override
@@ -436,9 +447,7 @@ class _ProfilPageState extends State<ProfilPage> {
                   title: "Yakin Log Out Akun?",
                   description:
                       "Kamu akan keluar dari akun ini. Pastikan data kamu sudah tersimpan.",
-                  onConfirm: () {
-                    Navigator.pushReplacementNamed(context, '/login');
-                  },
+                  onConfirm: _performLogout,
                 ),
           ),
         ],

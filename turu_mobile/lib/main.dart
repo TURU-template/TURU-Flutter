@@ -62,6 +62,7 @@ class TuruApp extends StatelessWidget {
       ),
       home: const LoginPage(), // Change initial route to LoginPage
       routes: {
+        '/login': (context) => const LoginPage(), // Added login route
         '/main': (context) => const MainScreen(),
         '/profile_details': (context) => const ProfileDetailsPage(),
         '/edit_profil': (context) => const EditProfilPage(),
