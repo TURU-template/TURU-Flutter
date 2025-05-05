@@ -1,9 +1,27 @@
 // TURU-Flutter/turu_backend/lib/env.dart:
 
 import 'package:dotenv/dotenv.dart';
+import 'dart:io';
+import 'package:path/path.dart' as p;
 
 /// load .env sekali saja, sekaligus merge Platform.environment
-final env = DotEnv(includePlatformEnvironment: true)..load();
+String _findEnvFile() {
+  var dir = Directory.current;
+  while (true) {
+    final candidate = File(p.join(dir.path, '.env'));
+    if (candidate.existsSync()) {
+      return candidate.path;
+    }
+    if (dir.parent.path == dir.path) {
+      break;
+    }
+    dir = dir.parent;
+  }
+  throw Exception('.env file not found in any parent directories');
+}
+
+final env = DotEnv(includePlatformEnvironment: true)
+  ..load([_findEnvFile()]);
 
 // --- TAMBAHKAN DEBUG PRINT DI SINI ---
 void printEnvVariables() {

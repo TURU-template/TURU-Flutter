@@ -18,4 +18,5 @@ dependencies:
   mysql_client: ^0.0.27
   bcrypt: ^1.1.3
   dotenv: ^4.0.1
+  path: ^1.8.0
   shelf_cors_headers: ^0.1.5
