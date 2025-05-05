@@ -10,6 +10,8 @@ import 'pages/detail_profil.dart';
 import 'pages/edit_profil.dart';
 import 'pages/edit_password.dart';
 import 'pages/sleep_history_page.dart';
+import 'pages/edit_foto.dart';
+
 // Import the notification service
 import 'services/notification_service.dart';
 
@@ -65,6 +67,7 @@ class TuruApp extends StatelessWidget {
         '/login': (context) => const LoginPage(), // Added login route
         '/main': (context) => const MainScreen(),
         '/profile_details': (context) => const ProfileDetailsPage(),
+        '/edit_foto': (context) => const EditFotoPage(), 
         '/edit_profil': (context) => const EditProfilPage(),
         '/edit_password': (context) => const EditPasswordPage(),
         '/history': (context) {
