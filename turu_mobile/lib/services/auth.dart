@@ -131,7 +131,7 @@ class AuthService {
               'tanggal_lahir': birthDateToSend,
             }),
           )
-          .timeout(const Duration(seconds: 15));
+          .timeout(const Duration(seconds: 5));
 
       print('Register response status: ${response.statusCode}');
       final body = jsonDecode(response.body);
@@ -139,6 +139,10 @@ class AuthService {
       if (response.statusCode == 200) {
         print('Registration successful for $username');
         return;
+      } else if (response.statusCode == 409) {
+        // Status 409 Conflict untuk username yang sudah ada
+        print('Registration failed: Username already exists');
+        throw Exception('Username already exists');
       } else {
         final errorMessage =
             body['error'] ??
@@ -148,17 +152,23 @@ class AuthService {
       }
     } catch (e) {
       print('Error during register request: $e');
+      
+      // Deteksi lebih spesifik untuk error duplikat username
+      String errorMessage = e.toString();
+      if (errorMessage.contains('Username already exists')) {
+        throw Exception('Username already exists');
+      }
+      
       // Beri pesan error spesifik jika mungkin
-      if (e is Exception && e.toString().contains('Failed host lookup')) {
+      if (errorMessage.contains('Failed host lookup')) {
         throw Exception(
           'Cannot connect to server. Is the backend running at the correct address ($_baseUrl)?',
         );
-      } else if (e is Exception &&
-          e.toString().contains('Connection refused')) {
+      } else if (errorMessage.contains('Connection refused')) {
         throw Exception(
           'Connection refused by server. Is the backend running and port open at $_baseUrl?',
         );
-      } else if (e is Exception && e.toString().contains('TimeoutException')) {
+      } else if (errorMessage.contains('TimeoutException')) {
         throw Exception(
           'Connection timed out trying to reach the server at $_baseUrl.',
         );

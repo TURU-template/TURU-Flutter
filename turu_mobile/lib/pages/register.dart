@@ -91,25 +91,31 @@ class _RegisterPageState extends State<RegisterPage> {
     } catch (e) {
       // Tangkap error dari AuthService
       if (mounted) {
-        // Ubah pesan error menjadi Bahasa Indonesia yang ramah pengguna
-        String errorMsg = e.toString().replaceFirst('Exception: ', '');
-        if (errorMsg.contains('Username and password are required')) {
+        // Ambil pesan asli tanpa prefix "Exception: "
+        String rawMsg = e.toString().replaceFirst('Exception: ', '');
+        String errorMsg;
+        
+        // Prioritaskan penanganan error username sudah ada
+        if (rawMsg.contains('Username already exists') || 
+            rawMsg.contains('sudah terdaftar') ||
+            rawMsg.contains('409')) { // Status code 409 = Conflict
+          errorMsg = 'Username telah digunakan, gunakan username lain';
+        } else if (rawMsg.contains('Username and password are required')) {
           errorMsg = 'Username dan password harus diisi.';
-        } else if (errorMsg.contains('Username already exists')) {
-          errorMsg = 'Username sudah terdaftar.';
-        } else if (errorMsg.contains('Invalid request format')) {
+        } else if (rawMsg.contains('Invalid request format')) {
           errorMsg = 'Format input tidak valid.';
-        } else if (errorMsg.contains('Database error during registration')) {
-          errorMsg = 'Terjadi masalah pada server. Silakan coba lagi nanti.';
-        } else if (errorMsg.contains('Registration failed')) {
-          errorMsg = 'Registrasi gagal. Silakan coba lagi nanti.';
-        } else if (errorMsg.contains('Cannot connect to server') ||
-                   errorMsg.contains('Connection refused') ||
-                   errorMsg.toLowerCase().contains('timeout')) {
-          errorMsg = 'Gagal menghubungkan ke server. Periksa koneksi internet.';
+        } else if (rawMsg.toLowerCase().contains('timeout') || 
+                   rawMsg.contains('connection') ||
+                   rawMsg.contains('Failed host lookup')) {
+          // Koneksi error tetap ditampilkan sebagai masalah koneksi
+          errorMsg = 'Gagal terhubung ke server. Periksa koneksi internet.';
         } else {
+          // Fallback dengan pesan generik yang lebih informatif
           errorMsg = 'Terjadi kesalahan. Silakan coba lagi nanti.';
+          // Log error asli untuk debugging
+          print('Register error: $rawMsg');
         }
+        
         setState(() {
           _errorMessage = errorMsg;
         });
