@@ -7,6 +7,7 @@ final env = DotEnv(includePlatformEnvironment: true)..load();
 
 // --- TAMBAHKAN DEBUG PRINT DI SINI ---
 void printEnvVariables() {
+  print("DATABASE_URL from env: ${env['DATABASE_URL']}");
   print("--- Reading .env variables ---");
   print("DB_HOST from env: ${env['DB_HOST']}");
   print("DB_PORT from env: ${env['DB_PORT']}");

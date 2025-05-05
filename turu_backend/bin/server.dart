@@ -24,6 +24,7 @@ void main() async {
 
   // --- Router ---
   final router = Router()
+    ..get('/', (Request req) => Response.ok('TURU Backend is up!'))
     ..post('/register', registerHandler)
     ..post('/login', loginHandler);
 
@@ -34,7 +35,7 @@ void main() async {
       .addHandler(router.call);
 
   // --- Jalankan Server ---
-  final server = await io.serve(handler, 'localhost', 8080);
+  final server = await io.serve(handler, '0.0.0.0', 8080);
   print('Server running on http://${server.address.host}:${server.port}');
   print('CORS Middleware enabled with headers:');
   corsDefaultHeaders.forEach((key, value) => print('  $key: $value'));

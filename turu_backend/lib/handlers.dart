@@ -2,7 +2,8 @@
 import 'dart:convert';
 import 'package:shelf/shelf.dart';
 import 'package:bcrypt/bcrypt.dart';
-import 'package:mysql1/mysql1.dart'; // Import untuk MySqlException
+import 'package:mysql_client/mysql_client.dart';
+import 'package:mysql_client/exception.dart';
 import 'db.dart';
 
 final dbService = DatabaseService();
@@ -39,19 +40,14 @@ Future<Response> registerHandler(Request req) async {
     await dbService.createUser(
       username: username,
       password: hashed,
-      // Kirim null jika jk atau tgl kosong/null
       gender: (jk?.isNotEmpty ?? false) ? jk : null,
-      birthDate: (tgl?.isNotEmpty ?? false)
-          ? tgl
-          : null, // Pastikan format YYYY-MM-DD dari frontend
+      birthDate: (tgl?.isNotEmpty ?? false) ? tgl : null,
     );
     return Response.ok(jsonEncode({'message': 'Register successful'}));
-  } on MySqlException catch (e) {
-    print("[Register Error - MySQL]: ${e.message} (Code: ${e.errorNumber})");
-    // Kirim pesan error yang lebih spesifik jika username duplikat
-    if (e.errorNumber == 1062) {
-      // Error code for duplicate entry
-      return Response(409, // 409 Conflict cocok untuk resource yang sudah ada
+  } on MySQLServerException catch (e) {
+    print("[Register Error - MySQL]: ${e.message} (Code: ${e.errorCode})");
+    if (e.errorCode == 1062) {
+      return Response(409,
           body: jsonEncode({'error': 'Username already exists'}));
     }
     return Response.internalServerError(
@@ -82,14 +78,17 @@ Future<Response> registerHandler(Request req) async {
 Future<Response> loginHandler(Request req) async {
   try {
     final bodyString = await req.readAsString();
+    print("[Login Debug] Raw bodyString: $bodyString");
     if (bodyString.isEmpty) {
       return Response(400,
           body: jsonEncode({'error': 'Request body is empty'}));
     }
     final body = jsonDecode(bodyString);
+    print("[Login Debug] Decoded body: $body");
 
     final username = body['username'] as String?;
     final password = body['password'] as String?;
+    print("[Login Debug] username: $username, password: $password");
 
     if (username == null ||
         username.isEmpty ||
@@ -102,29 +101,35 @@ Future<Response> loginHandler(Request req) async {
     // Pastikan tabel ada (akan coba connect jika belum)
     // await dbService.ensureTablesExist(); // Dipanggil di dalam getConnection()
 
-    final users = await dbService.getUserByUsername(username);
+    final result = await dbService.getUserByUsername(username);
+    print("[Login Debug] Rows returned count: ${result.rows.length}");
 
-    if (users.isEmpty) {
+    if (result.rows.isEmpty) {
       print("Login attempt failed: Username '$username' not found.");
       return Response(401, // 401 Unauthorized lebih cocok untuk login gagal
           body: jsonEncode({'error': 'Invalid username or password'}));
     }
 
-    final user = users.first;
-    final storedHashed = user['password'] as String; // Ambil hash dari DB
+    final row = result.rows.first;
+    print("[Login Debug] User row: $row");
+    final map = row.assoc();
+    final storedHashed = map['password'] as String;
+    print("[Login Debug] Stored hashed password: $storedHashed");
 
     // Verifikasi password
-    if (BCrypt.checkpw(password, storedHashed)) {
+    final passwordOk = BCrypt.checkpw(password, storedHashed);
+    print("[Login Debug] checkpw result: $passwordOk");
+    if (passwordOk) {
       print("Login successful for username: '$username'");
       // Di aplikasi nyata, Anda akan membuat token JWT di sini
       return Response.ok(jsonEncode({
         'message': 'Login successful',
         // Kirim data user lain jika perlu (kecuali password)
         'user': {
-          'id': user['id'],
-          'username': user['username'],
-          'jk': user['jk'],
-          'tanggal_lahir': user['tanggal_lahir']
+          'id': map['id'],
+          'username': map['username'],
+          'jk': map['jk'],
+          'tanggal_lahir': map['tanggal_lahir']
               ?.toString()
               .split(' ')[0], // Format YYYY-MM-DD
         }
@@ -135,8 +140,8 @@ Future<Response> loginHandler(Request req) async {
       return Response(401,
           body: jsonEncode({'error': 'Invalid username or password'}));
     }
-  } on MySqlException catch (e) {
-    print("[Login Error - MySQL]: ${e.message} (Code: ${e.errorNumber})");
+  } on MySQLServerException catch (e) {
+    print("[Login Error - MySQL]: ${e.message} (Code: ${e.errorCode})");
     return Response.internalServerError(
         body: jsonEncode({'error': 'Database error during login'}));
   } on FormatException catch (e) {
