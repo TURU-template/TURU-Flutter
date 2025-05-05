@@ -1,10 +1,11 @@
-import 'package:flutter/material.dart'; // Import material for TimeOfDay if needed later
-import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 // Attempt to import the specific type if it's not exported by default
 // Note: Using internal package paths like 'src' is generally discouraged,
 // but let's try it to see if it resolves the Time class issue.
 // If this fails, we'll switch to using TimeOfDay.
 // import 'package:flutter_local_notifications/src/types.dart';
+
+import 'package:flutter/material.dart'; // Import material for TimeOfDay if needed later
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:permission_handler/permission_handler.dart'; // Import permission_handler
 import 'package:timezone/data/latest_all.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
