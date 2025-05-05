@@ -93,6 +93,10 @@ flutter:
     - assets/songs/Twilight.mp3
     - assets/songs/Monoman.mp3
     - assets/songs/Yasumu.mp3
+    - assets/songs/white.mp3
+    - assets/songs/blue.mp3
+    - assets/songs/brown.mp3
+    - assets/songs/pink.mp3
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

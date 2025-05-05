@@ -24,10 +24,10 @@ class _RadioPageState extends State<RadioPage> {
 
   final Map<String, String> soundSources = {
     // Derau Warna
-    'White': 'songs/noise_white.mp3',
-    'Blue': 'songs/noise_blue.mp3',
-    'Brown': 'songs/noise_brown.mp3',
-    'Pink': 'songs/noise_pink.mp3',
+    'White': 'songs/white.mp3',
+    'Blue': 'songs/blue.mp3',
+    'Brown': 'songs/brown.mp3',
+    'Pink': 'songs/pink.mp3',
 
     // Suara Ambiens
     'Api': 'songs/Api.mp3',
@@ -183,7 +183,7 @@ class _RadioPageState extends State<RadioPage> {
       {'label': 'White', 'emoji': '⚪', 'color': TuruColors.purple},
       {'label': 'Blue', 'emoji': '🔵', 'color': TuruColors.blue},
       {'label': 'Brown', 'emoji': '🟤', 'color': TuruColors.indigo},
-      {'label': 'Pink', 'emoji': '🩷', 'color': TuruColors.pink},
+      {'label': 'Pink', 'emoji': '❤️', 'color': TuruColors.pink},
     ];
 
     final List<Map<String, dynamic>> ambiensButtons = [
