@@ -44,6 +44,13 @@ class DatabaseService {
     );
   }
 
+  Future<IResultSet> getUserById(int id) async {
+    return await _pool.execute(
+      'SELECT id, username, password, jk, tanggal_lahir FROM pengguna WHERE id = :id',
+      {'id': id},
+    );
+  }
+
   Future<IResultSet> createUser({
     required String username,
     required String password,
@@ -67,12 +74,17 @@ class DatabaseService {
 
   Future<IResultSet> updateUser({
     required int userId,
+    String? username,
     String? password,
     String? gender,
     String? birthDate,
   }) async {
     final updates = <String>[];
     final params = <String, dynamic>{ 'id': userId };
+    if (username != null && username.isNotEmpty) {
+      updates.add('username = :username');
+      params['username'] = username;
+    }
     if (password != null) {
       updates.add('password = :password');
       params['password'] = password;

@@ -1,13 +1,57 @@
 import 'package:flutter/material.dart';
 import '../../main.dart';
+import '../services/auth.dart';
 
-class EditPasswordPage extends StatelessWidget {
+class EditPasswordPage extends StatefulWidget {
   const EditPasswordPage({super.key});
+
+  @override
+  _EditPasswordPageState createState() => _EditPasswordPageState();
+}
+
+class _EditPasswordPageState extends State<EditPasswordPage> {
+  final AuthService _authService = AuthService();
+  final TextEditingController _oldPasswordController = TextEditingController();
+  final TextEditingController _newPasswordController = TextEditingController();
+
+  @override
+  void dispose() {
+    _oldPasswordController.dispose();
+    _newPasswordController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _savePassword() async {
+    final oldPw = _oldPasswordController.text.trim();
+    final newPw = _newPasswordController.text.trim();
+    if (oldPw.isEmpty || newPw.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Password lama dan baru harus diisi')),
+      );
+      return;
+    }
+    final user = _authService.getCurrentUser();
+    try {
+      await _authService.changePassword(
+        userId: user!['id'],
+        oldPassword: oldPw,
+        newPassword: newPw,
+      );
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Password berhasil diubah')),
+      );
+      Navigator.pop(context);
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.toString().replaceFirst('Exception: ', ''))),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor:  TuruColors.primaryBackground,
+      backgroundColor: TuruColors.primaryBackground,
       appBar: AppBar(
         backgroundColor: TuruColors.navbarBackground,
         elevation: 0,
@@ -28,6 +72,7 @@ class EditPasswordPage extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             TextField(
+              controller: _oldPasswordController,
               obscureText: true,
               decoration: InputDecoration(
                 hintText: 'Masukkan password lama',
@@ -52,6 +97,7 @@ class EditPasswordPage extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             TextField(
+              controller: _newPasswordController,
               obscureText: true,
               decoration: InputDecoration(
                 hintText: 'Masukkan password baru',
@@ -73,10 +119,7 @@ class EditPasswordPage extends StatelessWidget {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: () {
-                  // Simpan password
-                  Navigator.pop(context);
-                },
+                onPressed: _savePassword,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: TuruColors.indigo,
                   padding: const EdgeInsets.symmetric(vertical: 16),

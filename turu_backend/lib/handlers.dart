@@ -157,3 +157,68 @@ Future<Response> loginHandler(Request req) async {
     // await dbService.closeConnection();
   }
 }
+
+Future<Response> updateProfileHandler(Request req, String id) async {
+  try {
+    final userId = int.tryParse(id);
+    if (userId == null) {
+      return Response(400, body: jsonEncode({'error': 'Invalid user ID'}));
+    }
+    final bodyString = await req.readAsString();
+    if (bodyString.isEmpty) {
+      return Response(400, body: jsonEncode({'error': 'Request body is empty'}));
+    }
+    final body = jsonDecode(bodyString);
+    final newUsername = body['username'] as String?;
+    if (newUsername == null || newUsername.isEmpty) {
+      return Response(400, body: jsonEncode({'error': 'Username is required'}));
+    }
+    await dbService.updateUser(userId: userId, username: newUsername);
+    return Response.ok(jsonEncode({'message': 'Profile updated successfully'}));
+  } catch (e) {
+    print('[UpdateProfile Error]: $e');
+    return Response.internalServerError(
+      body: jsonEncode({'error': 'Error updating profile'}),
+    );
+  }
+}
+
+Future<Response> updatePasswordHandler(Request req, String id) async {
+  try {
+    final userId = int.tryParse(id);
+    if (userId == null) {
+      return Response(400, body: jsonEncode({'error': 'Invalid user ID'}));
+    }
+    final bodyString = await req.readAsString();
+    if (bodyString.isEmpty) {
+      return Response(400, body: jsonEncode({'error': 'Request body is empty'}));
+    }
+    final body = jsonDecode(bodyString);
+    final oldPassword = body['oldPassword'] as String?;
+    final newPassword = body['newPassword'] as String?;
+    if (oldPassword == null || newPassword == null || newPassword.isEmpty) {
+      return Response(400,
+          body: jsonEncode({'error': 'Old and new passwords are required'}));
+    }
+    // Verify old password
+    final result = await dbService.getUserById(userId);
+    if (result.rows.isEmpty) {
+      return Response(404, body: jsonEncode({'error': 'User not found'}));
+    }
+    final map = result.rows.first.assoc();
+    final storedHashed = map['password'] as String;
+    final isMatch = BCrypt.checkpw(oldPassword, storedHashed);
+    if (!isMatch) {
+      return Response(401, body: jsonEncode({'error': 'Old password is incorrect'}));
+    }
+    // Hash new password and update
+    final hashedNew = BCrypt.hashpw(newPassword, BCrypt.gensalt());
+    await dbService.updateUser(userId: userId, password: hashedNew);
+    return Response.ok(jsonEncode({'message': 'Password updated successfully'}));
+  } catch (e) {
+    print('[UpdatePassword Error]: $e');
+    return Response.internalServerError(
+      body: jsonEncode({'error': 'Error updating password'}),
+    );
+  }
+}

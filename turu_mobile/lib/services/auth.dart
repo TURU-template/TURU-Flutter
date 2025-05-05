@@ -157,13 +157,26 @@ class AuthService {
   }
 
   // --- Sisa AuthService (isLoggedIn, setLoggedIn, dll) tidak perlu diubah ---
-  bool _isUserLoggedIn = false;
-  Map<String, dynamic>? _loggedInUserData;
+  static bool _isUserLoggedIn = false;
+  static Map<String, dynamic>? _loggedInUserData;
 
   Future<void> setLoggedIn(Map<String, dynamic> userData) async {
     _isUserLoggedIn = true;
-    _loggedInUserData = userData['user'];
-    print("User set as logged in: ${_loggedInUserData?['username']}");
+    // Ensure user ID is stored as int
+    final rawUser = userData['user'];
+    if (rawUser is Map<String, dynamic>) {
+      final userMap = Map<String, dynamic>.from(rawUser);
+      final idVal = userMap['id'];
+      // Parse id if it's a string
+      if (idVal is String) {
+        userMap['id'] = int.tryParse(idVal) ?? idVal;
+      }
+      _loggedInUserData = userMap;
+      print("User set as logged in: \\${_loggedInUserData?['username']}");
+    } else {
+      _loggedInUserData = null;
+      print('Failed to set user: invalid user data');
+    }
   }
 
   Future<void> logout() async {
@@ -178,5 +191,71 @@ class AuthService {
 
   Map<String, dynamic>? getCurrentUser() {
     return _loggedInUserData;
+  }
+
+  // Fungsi Update Profil
+  Future<void> updateProfile({required int userId, required String username}) async {
+    final url = Uri.parse('$_baseUrl/user/$userId');
+    print('Attempting updateProfile to $url with username: $username');
+    try {
+      final response = await http.put(
+        url,
+        headers: {'Content-Type': 'application/json; charset=UTF-8'},
+        body: jsonEncode({'username': username}),
+      ).timeout(const Duration(seconds: 15));
+      print('updateProfile response status: ${response.statusCode}');
+      if (response.statusCode == 200) {
+        // Update local user data
+        _loggedInUserData?['username'] = username;
+        return;
+      } else {
+        String errorMessage;
+        try {
+          final errorBody = jsonDecode(response.body);
+          errorMessage = errorBody['error'] ?? response.body;
+        } catch (_) {
+          errorMessage = response.body;
+        }
+        print('updateProfile failed: $errorMessage');
+        throw Exception(errorMessage);
+      }
+    } catch (e) {
+      print('Error during updateProfile request: $e');
+      throw Exception('Gagal terhubung ke server: ${e.toString()}');
+    }
+  }
+
+  // Fungsi Ubah Password
+  Future<void> changePassword({
+    required int userId,
+    required String oldPassword,
+    required String newPassword,
+  }) async {
+    final url = Uri.parse('$_baseUrl/user/$userId/password');
+    print('Attempting changePassword to $url for userId: $userId');
+    try {
+      final response = await http.put(
+        url,
+        headers: {'Content-Type': 'application/json; charset=UTF-8'},
+        body: jsonEncode({'oldPassword': oldPassword, 'newPassword': newPassword}),
+      ).timeout(const Duration(seconds: 15));
+      print('changePassword response status: ${response.statusCode}');
+      if (response.statusCode == 200) {
+        return;
+      } else {
+        String errorMessage;
+        try {
+          final errorBody = jsonDecode(response.body);
+          errorMessage = errorBody['error'] ?? response.body;
+        } catch (_) {
+          errorMessage = response.body;
+        }
+        print('changePassword failed: $errorMessage');
+        throw Exception(errorMessage);
+      }
+    } catch (e) {
+      print('Error during changePassword request: $e');
+      throw Exception('Gagal terhubung ke server: ${e.toString()}');
+    }
   }
 }

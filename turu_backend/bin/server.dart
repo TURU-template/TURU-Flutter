@@ -26,7 +26,9 @@ void main() async {
   final router = Router()
     ..get('/', (Request req) => Response.ok('TURU Backend is up!'))
     ..post('/register', registerHandler)
-    ..post('/login', loginHandler);
+    ..post('/login', loginHandler)
+    ..put('/user/<id|[0-9]+>', updateProfileHandler)
+    ..put('/user/<id|[0-9]+>/password', updatePasswordHandler);
 
   // --- Pipeline ---
   final handler = Pipeline()

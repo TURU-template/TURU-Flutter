@@ -1,8 +1,32 @@
 import 'package:flutter/material.dart';
 import '../../main.dart';
+import '../services/auth.dart';
 
-class EditProfilPage extends StatelessWidget {
+class EditProfilPage extends StatefulWidget {
   const EditProfilPage({super.key});
+
+  @override
+  _EditProfilPageState createState() => _EditProfilPageState();
+}
+
+class _EditProfilPageState extends State<EditProfilPage> {
+  final AuthService _authService = AuthService();
+  late TextEditingController _oldNameController;
+  final TextEditingController _newNameController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    final user = _authService.getCurrentUser();
+    _oldNameController = TextEditingController(text: user?['username'] ?? '');
+  }
+
+  @override
+  void dispose() {
+    _oldNameController.dispose();
+    _newNameController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -28,6 +52,7 @@ class EditProfilPage extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             TextField(
+              controller: _oldNameController,
               readOnly: true,
               decoration: InputDecoration(
                 hintText: 'Nama lama',
@@ -52,6 +77,7 @@ class EditProfilPage extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             TextField(
+              controller: _newNameController,
               decoration: InputDecoration(
                 hintText: 'Masukkan nama baru',
                 hintStyle: const TextStyle(color: Colors.white38),
@@ -72,9 +98,32 @@ class EditProfilPage extends StatelessWidget {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: () {
-                  // Simpan perubahan nama
-                  Navigator.pop(context);
+                onPressed: () async {
+                  final newName = _newNameController.text.trim();
+                  if (newName.isEmpty) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Nama baru tidak boleh kosong'))
+                    );
+                    return;
+                  }
+                  final user = _authService.getCurrentUser();
+                  // Ensure userId is int
+                  final rawId = user!['id'];
+                  final userId = rawId is String ? int.parse(rawId) : (rawId as int);
+                  try {
+                    await _authService.updateProfile(
+                      userId: userId,
+                      username: newName,
+                    );
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Profil berhasil diperbarui'))
+                    );
+                    Navigator.pop(context);
+                  } catch (e) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text(e.toString()))
+                    );
+                  }
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: TuruColors.indigo,
