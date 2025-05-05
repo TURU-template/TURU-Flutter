@@ -39,7 +39,9 @@ dependencies:
   shared_preferences: ^2.5.3
   permission_handler: ^11.3.1
   flutter_local_notifications: ^18.0.1 # Added for local notifications
-  timezone: ^0.9.3 # Added for timezone support
+  timezone: ^0.9.3 # Added for timezone 
+  path_provider: ^2.1.2
+  path: ^1.9.0
 
 
   flutter:
