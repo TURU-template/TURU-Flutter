@@ -1,12 +1,10 @@
-// Attempt to import the specific type if it's not exported by default
-// Note: Using internal package paths like 'src' is generally discouraged,
-// but let's try it to see if it resolves the Time class issue.
-// If this fails, we'll switch to using TimeOfDay.
-// import 'package:flutter_local_notifications/src/types.dart';
+// ignore: avoid_web_libraries_in_flutter
+import 'dart:io' show Platform;
 
-import 'package:flutter/material.dart'; // Import material for TimeOfDay if needed later
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:permission_handler/permission_handler.dart'; // Import permission_handler
+import 'package:permission_handler/permission_handler.dart';
 import 'package:timezone/data/latest_all.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
 
@@ -24,17 +22,23 @@ class NotificationService {
       FlutterLocalNotificationsPlugin();
 
   Future<void> initialize() async {
+    if (kIsWeb) {
+      print("Web platform detected: Notification service not initialized.");
+      return;
+    }
+
+    if (!Platform.isAndroid && !Platform.isIOS) {
+      print("Unsupported platform for notifications.");
+      return;
+    }
+
     tz.initializeTimeZones();
-    // Set the local location
-    // You might need to adjust this based on where your users are,
-    // or get the device's timezone. For now, using Jakarta.
     final String timeZoneName = 'Asia/Jakarta';
     tz.setLocalLocation(tz.getLocation(timeZoneName));
 
     const AndroidInitializationSettings initializationSettingsAndroid =
-        AndroidInitializationSettings('@mipmap/ic_launcher'); // Use app icon
+        AndroidInitializationSettings('@mipmap/ic_launcher');
 
-    // Request permissions for iOS (if needed, though the focus is Android)
     const DarwinInitializationSettings initializationSettingsIOS =
         DarwinInitializationSettings(
           requestAlertPermission: true,
@@ -53,39 +57,33 @@ class NotificationService {
       onDidReceiveNotificationResponse: (
         NotificationResponse notificationResponse,
       ) async {
-        // Handle notification tapped logic here if needed
-        print('Notification tapped: ${notificationResponse.payload}');
+        print('Notification tapped: \${notificationResponse.payload}');
       },
       onDidReceiveBackgroundNotificationResponse: notificationTapBackground,
     );
 
-    // --- Explicitly create the notification channel ---
     final AndroidFlutterLocalNotificationsPlugin? androidImplementation =
         flutterLocalNotificationsPlugin
             .resolvePlatformSpecificImplementation<
               AndroidFlutterLocalNotificationsPlugin
             >();
+
     if (androidImplementation != null) {
       const AndroidNotificationChannel channel = AndroidNotificationChannel(
-        'daily_sleep_reminder_channel', // Channel ID (must match the one used in scheduleDailyNotification)
-        'Daily Sleep Reminders', // Channel Name
-        description:
-            'Channel for daily sleep reminder notifications.', // Channel Description
+        'daily_sleep_reminder_channel',
+        'Daily Sleep Reminders',
+        description: 'Channel for daily sleep reminder notifications.',
         importance: Importance.max,
       );
       await androidImplementation.createNotificationChannel(channel);
-      print("Created notification channel: ${channel.id}");
+      print("Created notification channel: \${channel.id}");
     }
-    // --- End channel creation ---
 
-    // Request Android 13+ notification permission
     await _requestAndroidPermissions();
-    // Request ignore battery optimizations permission
     await _requestBatteryOptimizationPermission();
   }
 
   Future<void> _requestAndroidPermissions() async {
-    // Request permission for Android 13+
     final AndroidFlutterLocalNotificationsPlugin? androidImplementation =
         flutterLocalNotificationsPlugin
             .resolvePlatformSpecificImplementation<
@@ -94,23 +92,21 @@ class NotificationService {
     if (androidImplementation != null) {
       final bool? granted =
           await androidImplementation.requestNotificationsPermission();
-      print('Notification permission granted: $granted');
-      // Explicitly request exact alarm permission for reliable scheduling
+      print('Notification permission granted: \$granted');
       final bool? exactAlarmGranted =
           await androidImplementation.requestExactAlarmsPermission();
-      print('Exact alarm permission granted: $exactAlarmGranted');
+      print('Exact alarm permission granted: \$exactAlarmGranted');
     }
   }
 
   Future<void> _requestBatteryOptimizationPermission() async {
-    // Request permission to ignore battery optimizations
     PermissionStatus status =
         await Permission.ignoreBatteryOptimizations.status;
-    print('Ignore battery optimizations status: $status');
+    print('Ignore battery optimizations status: \$status');
     if (!status.isGranted) {
       PermissionStatus requestedStatus =
           await Permission.ignoreBatteryOptimizations.request();
-      print('Ignore battery optimizations requested status: $requestedStatus');
+      print('Ignore battery optimizations requested status: \$requestedStatus');
     }
   }
 
@@ -118,30 +114,25 @@ class NotificationService {
     required int id,
     required String title,
     required String body,
-    required TimeOfDay scheduledTime, // Use TimeOfDay instead of Time
+    required TimeOfDay scheduledTime,
   }) async {
     final tz.TZDateTime nextInstanceOfTime = _nextInstanceOfTime(scheduledTime);
-    print(
-      'Attempting to schedule notification for: $nextInstanceOfTime',
-    ); // Add logging
+    print('Attempting to schedule notification for: \$nextInstanceOfTime');
 
     await flutterLocalNotificationsPlugin.zonedSchedule(
       id,
       title,
       body,
-      nextInstanceOfTime, // Use the calculated time
-      // Simplify notification details for testing
+      nextInstanceOfTime,
       const NotificationDetails(
         android: AndroidNotificationDetails(
-          'daily_sleep_reminder_channel', // Channel ID
-          'Daily Sleep Reminders', // Channel Name
-          // channelDescription removed for simplicity
+          'daily_sleep_reminder_channel',
+          'Daily Sleep Reminders',
           importance: Importance.max,
           priority: Priority.high,
           icon: '@mipmap/ic_launcher',
         ),
         iOS: DarwinNotificationDetails(
-          // Keep iOS basic settings
           presentSound: true,
           presentBadge: true,
           presentAlert: true,
@@ -150,18 +141,17 @@ class NotificationService {
       androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
       uiLocalNotificationDateInterpretation:
           UILocalNotificationDateInterpretation.absoluteTime,
-      matchDateTimeComponents:
-          DateTimeComponents.time, // Match only the time for daily repetition
+      matchDateTimeComponents: DateTimeComponents.time,
       payload: 'Daily Sleep Reminder Payload',
     );
-    // Manually format TimeOfDay for printing (HH:MM)
-    final String formattedTime =
+
+    String formattedTime =
         '${scheduledTime.hour.toString().padLeft(2, '0')}:${scheduledTime.minute.toString().padLeft(2, '0')}';
-    print('Scheduled daily notification for $formattedTime');
+
+    print('Scheduled daily notification for \$formattedTime');
   }
 
   tz.TZDateTime _nextInstanceOfTime(TimeOfDay time) {
-    // Use TimeOfDay
     final tz.TZDateTime now = tz.TZDateTime.now(tz.local);
     tz.TZDateTime scheduledDate = tz.TZDateTime(
       tz.local,
@@ -170,7 +160,6 @@ class NotificationService {
       now.day,
       time.hour,
       time.minute,
-      0, // Seconds set to 0 as TimeOfDay doesn't have seconds
     );
     if (scheduledDate.isBefore(now)) {
       scheduledDate = scheduledDate.add(const Duration(days: 1));
@@ -180,7 +169,7 @@ class NotificationService {
 
   Future<void> cancelNotification(int id) async {
     await flutterLocalNotificationsPlugin.cancel(id);
-    print('Cancelled notification with id: $id');
+    print('Cancelled notification with id: \$id');
   }
 
   Future<void> cancelAllNotifications() async {
@@ -188,17 +177,21 @@ class NotificationService {
     print('Cancelled all notifications');
   }
 
-  // --- Test Function ---
   Future<void> showImmediateNotification({
-    int id = 99, // Use a different ID for testing
+    int id = 99,
     String title = "Test Notifikasi",
     String body = "Berhasil!",
     String payload = "Test Payload",
   }) async {
+    if (kIsWeb) {
+      print("Skipping showImmediateNotification: Not supported on Web.");
+      return;
+    }
+
     print('Attempting to show immediate notification...');
     const NotificationDetails notificationDetails = NotificationDetails(
       android: AndroidNotificationDetails(
-        'test_channel', // Use a different channel for testing if desired
+        'test_channel',
         'Test Notifications',
         channelDescription: 'Channel for immediate test notifications',
         importance: Importance.max,
@@ -221,15 +214,9 @@ class NotificationService {
     );
     print('Immediate notification shown.');
   }
-
-  // --- End Test Function ---
 }
 
-// Top-level function for background notification tap handling
 @pragma('vm:entry-point')
 void notificationTapBackground(NotificationResponse notificationResponse) {
-  // Handle notification tap when the app is in the background or terminated
-  print('Notification tapped in background: ${notificationResponse.payload}');
-  // You could potentially navigate to a specific screen here if needed,
-  // but it requires more setup (e.g., using a routing package).
+  print('Notification tapped in background: \${notificationResponse.payload}');
 }

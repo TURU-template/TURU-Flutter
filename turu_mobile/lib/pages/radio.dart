@@ -247,11 +247,12 @@ class _RadioPageState extends State<RadioPage> {
               child: Material(
                 color: Colors.transparent,
                 child: Row(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
                     _buildTimerOption(5),
-                    const SizedBox(width: 12),
+                    const SizedBox(width: 16),
                     _buildTimerOption(10),
-                    const SizedBox(width: 12),
+                    const SizedBox(width: 16),
                     _buildTimerOption(15),
                   ],
                 ),
@@ -307,28 +308,29 @@ class _RadioPageState extends State<RadioPage> {
 
   Widget _buildTimerOption(int minutes) {
     final bool isSelected = _selectedDuration == minutes * 60;
-    return SizedBox(
-      width: 60,
-      height: 60,
-      child: ElevatedButton(
-        onPressed: () {
-          _startTimer(minutes * 60);
-          setState(() {
-            _showTimerOptions = false;
-          });
-        },
-        style: ElevatedButton.styleFrom(
-          minimumSize: Size.zero,
-          backgroundColor: TuruColors.pink,
-          foregroundColor: Colors.white,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
+    return IntrinsicWidth(
+      child: SizedBox(
+        height: 60,
+        child: ElevatedButton(
+          onPressed: () {
+            _startTimer(minutes * 60);
+            setState(() {
+              _showTimerOptions = false;
+            });
+          },
+          style: ElevatedButton.styleFrom(
+            minimumSize: Size.zero,
+            backgroundColor: TuruColors.pink,
+            foregroundColor: Colors.white,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            elevation: isSelected ? 4 : 0,
           ),
-          elevation: isSelected ? 4 : 0,
-        ),
-        child: Text(
-          '${minutes}m',
-          style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w600),
+          child: Text(
+            '${minutes}m',
+            style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w600),
+          ),
         ),
       ),
     );
