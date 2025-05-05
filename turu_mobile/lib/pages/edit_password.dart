@@ -13,6 +13,8 @@ class _EditPasswordPageState extends State<EditPasswordPage> {
   final AuthService _authService = AuthService();
   final TextEditingController _oldPasswordController = TextEditingController();
   final TextEditingController _newPasswordController = TextEditingController();
+  bool _oldPasswordObscured = true;
+  bool _newPasswordObscured = true;
 
   @override
   void dispose() {
@@ -73,8 +75,19 @@ class _EditPasswordPageState extends State<EditPasswordPage> {
             const SizedBox(height: 8),
             TextField(
               controller: _oldPasswordController,
-              obscureText: true,
+              obscureText: _oldPasswordObscured,
               decoration: InputDecoration(
+                suffixIcon: IconButton(
+                  icon: Icon(
+                    _oldPasswordObscured ? Icons.visibility : Icons.visibility_off,
+                    color: Colors.white38,
+                  ),
+                  onPressed: () {
+                    setState(() {
+                      _oldPasswordObscured = !_oldPasswordObscured;
+                    });
+                  },
+                ),
                 hintText: 'Masukkan password lama',
                 hintStyle: const TextStyle(color: Colors.white38),
                 filled: true,
@@ -98,8 +111,19 @@ class _EditPasswordPageState extends State<EditPasswordPage> {
             const SizedBox(height: 8),
             TextField(
               controller: _newPasswordController,
-              obscureText: true,
+              obscureText: _newPasswordObscured,
               decoration: InputDecoration(
+                suffixIcon: IconButton(
+                  icon: Icon(
+                    _newPasswordObscured ? Icons.visibility : Icons.visibility_off,
+                    color: Colors.white38,
+                  ),
+                  onPressed: () {
+                    setState(() {
+                      _newPasswordObscured = !_newPasswordObscured;
+                    });
+                  },
+                ),
                 hintText: 'Masukkan password baru',
                 hintStyle: const TextStyle(color: Colors.white38),
                 filled: true,
