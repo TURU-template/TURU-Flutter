@@ -24,7 +24,7 @@ Future<void> main() async {
 }
 
 class TuruColors {
-  static const Color primaryBackground = Color(0xFF02021D);
+  static const Color primaryBackground = Color(0xFF04051F);
   static const Color navbarBackground = Color(0xFF08082F);
 
   static const Color textColor = Color(0xFFFFFFFF);
@@ -38,7 +38,7 @@ class TuruColors {
   static const Color blue = Color(0xFF35A4DA);
   static const Color purple = Color(0xFF8C4FC2);
   static const Color pink = Color(0xFFDA5798);
-  static const Color backdrop = Color(0xFF151619);
+  static const Color backdrop = Color(0xFF0C0E24);
   static const Color button = Color(0xFF007BFF);
 }
 
@@ -104,7 +104,7 @@ class _MainScreenState extends State<MainScreen> {
         child: IndexedStack(index: _selectedIndex, children: _pages),
       ),
       bottomNavigationBar: SizedBox(
-        height: 80,
+        height: 65,
         child: BottomNavigationBar(
           backgroundColor: TuruColors.navbarBackground,
           selectedItemColor: TuruColors.indigo,
@@ -114,8 +114,8 @@ class _MainScreenState extends State<MainScreen> {
           elevation: 8,
           type: BottomNavigationBarType.fixed,
           showUnselectedLabels: true,
-          selectedFontSize: 13,
-          unselectedFontSize: 13,
+          selectedFontSize: 11,
+          unselectedFontSize: 11,
           selectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold),
           unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold),
           items: [
@@ -148,18 +148,18 @@ class _MainScreenState extends State<MainScreen> {
         children: [
           if (isActive)
             Container(
-              width: 24,
-              height: 3,
-              margin: const EdgeInsets.only(bottom: 6),
+              width: 20,
+              height: 2,
+              margin: const EdgeInsets.only(bottom: 4),
               decoration: BoxDecoration(
                 color: TuruColors.indigo,
                 borderRadius: BorderRadius.circular(2),
               ),
             )
           else
-            const SizedBox(height: 7),
-          Icon(icon),
-          const SizedBox(height: 6),
+            const SizedBox(height: 6),
+          Icon(icon, size: 20),
+          const SizedBox(height: 4),
         ],
       ),
       label: label,

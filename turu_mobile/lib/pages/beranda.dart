@@ -163,23 +163,26 @@ class _BerandaPageState extends State<BerandaPage> {
               const SizedBox(height: 32),
 
               // Tips Button
-              ElevatedButton.icon(
-                onPressed: () {
-                  Navigator.pushNamed(context, '/tips');
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: TuruColors.indigo,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 20,
-                    vertical: 12,
+              Container(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: () {
+                    Navigator.pushNamed(context, '/tips');
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: TuruColors.indigo,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    elevation: 4,
                   ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  elevation: 4,
+                  icon: const Icon(Icons.nightlight_round, size: 20),
+                  label: const Text("Tips Tidur", style: TextStyle(fontSize: 16)),
                 ),
-                icon: const Icon(Icons.nightlight_round, size: 20),
-                label: const Text("Tips Tidur", style: TextStyle(fontSize: 16)),
               ),
 
               const SizedBox(height: 48),
@@ -308,27 +311,30 @@ class _BerandaPageState extends State<BerandaPage> {
               ),
               const SizedBox(height: 24),
 
-              ElevatedButton(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => SleepHistoryPage()),
-                  );
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: TuruColors.indigo,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 20,
-                    vertical: 12,
+              Container(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => SleepHistoryPage()),
+                    );
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: TuruColors.indigo,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    elevation: 4,
                   ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
+                  child: const Text(
+                    "Lihat Riwayat Tidur",
+                    style: TextStyle(fontSize: 16, color: Colors.white),
                   ),
-                  elevation: 4,
-                ),
-                child: const Text(
-                  "Lihat Riwayat Tidur",
-                  style: TextStyle(fontSize: 16, color: Colors.white),
                 ),
               ),
 
@@ -339,14 +345,15 @@ class _BerandaPageState extends State<BerandaPage> {
 
         // Floating Action Button
         Positioned(
-          bottom: 80,
+          bottom: 74,
           right: 20,
           child: SizedBox(
-            width: 80,
-            height: 80,
+            width: 60,
+            height: 60,
             child: FloatingActionButton(
-              heroTag: null, // Add unique heroTag
+              heroTag: null,
               backgroundColor: TuruColors.pink,
+              elevation: 4,
               onPressed: () {
                 // TODO: implement timer functionality
               },
@@ -354,11 +361,10 @@ class _BerandaPageState extends State<BerandaPage> {
                 mainAxisSize: MainAxisSize.min,
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: const [
-                  Icon(Icons.post_add, size: 28),
-                  SizedBox(height: 6),
+                  Icon(Icons.add, size: 24),
                   Text(
                     "Tambah",
-                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                    style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600),
                   ),
                 ],
               ),
