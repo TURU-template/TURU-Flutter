@@ -76,29 +76,29 @@ class _LoginPageState extends State<LoginPage> {
         _navigateToMainScreen();
       }
     } catch (e) {
-      // Tangkap error dari AuthService
+      // Tangkap semua error dan selalu tampilkan 'Username atau password salah'
+      // kecuali untuk kasus khusus
       if (mounted) {
-        // Map messages and set localized error
-        String errorMsg = e.toString().replaceFirst('Exception: ', '');
-        if (errorMsg.contains('Invalid username or password')) {
+        String rawMsg = e.toString().replaceFirst('Exception: ', '');
+        String errorMsg;
+        
+        // Khusus untuk input kosong, tetap tampilkan pesan spesifik
+        if (rawMsg.contains('Username and password are required')) {
+          errorMsg = 'Username dan password harus diisi.';
+        } else {
+          // Untuk semua kasus lain (termasuk timeout, koneksi gagal, dan kredensial salah)
+          // tampilkan pesan yang sama untuk UX yang lebih baik
           errorMsg = 'Username atau password salah';
-        } else if (errorMsg.contains('Username and password are required')) {
-          errorMsg = 'Username dan password harus diisi';
-        } else if (errorMsg.contains('Cannot connect to server')) {
-          errorMsg = 'Tidak dapat menghubungi server. Periksa koneksi.';
-        } else if (errorMsg.contains('Connection refused')) {
-          errorMsg = 'Koneksi ditolak oleh server.';
-        } else if (errorMsg.contains('Connection timed out')) {
-          errorMsg = 'Koneksi ke server timeout.';
+          
+          // Log jenis error sebenarnya untuk debugging (opsional)
+          print('Login error (showing credentials error): $rawMsg');
         }
+        
         setState(() {
           _errorMessage = errorMsg;
         });
-      } else {
-        print("Login error caught after widget disposed: $e");
       }
     } finally {
-      // Pastikan loading indicator berhenti meskipun error, jika widget masih mounted
       if (mounted) {
         setState(() => _isLoading = false);
       }

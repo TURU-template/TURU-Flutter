@@ -91,24 +91,24 @@ class _RegisterPageState extends State<RegisterPage> {
     } catch (e) {
       // Tangkap error dari AuthService
       if (mounted) {
-        // Map backend error messages to Indonesian
+        // Ubah pesan error menjadi Bahasa Indonesia yang ramah pengguna
         String errorMsg = e.toString().replaceFirst('Exception: ', '');
         if (errorMsg.contains('Username and password are required')) {
-          errorMsg = 'Username dan password harus diisi';
+          errorMsg = 'Username dan password harus diisi.';
         } else if (errorMsg.contains('Username already exists')) {
-          errorMsg = 'Username sudah terdaftar';
+          errorMsg = 'Username sudah terdaftar.';
         } else if (errorMsg.contains('Invalid request format')) {
-          errorMsg = 'Format permintaan tidak valid';
+          errorMsg = 'Format input tidak valid.';
         } else if (errorMsg.contains('Database error during registration')) {
-          errorMsg = 'Kesalahan basis data saat registrasi';
+          errorMsg = 'Terjadi masalah pada server. Silakan coba lagi nanti.';
         } else if (errorMsg.contains('Registration failed')) {
-          errorMsg = 'Registrasi gagal, silakan coba lagi';
-        } else if (errorMsg.contains('Cannot connect to server')) {
-          errorMsg = 'Tidak dapat menghubungi server. Periksa koneksi.';
-        } else if (errorMsg.contains('Connection refused')) {
-          errorMsg = 'Koneksi ditolak oleh server.';
-        } else if (errorMsg.toLowerCase().contains('timeout')) {
-          errorMsg = 'Koneksi ke server timeout.';
+          errorMsg = 'Registrasi gagal. Silakan coba lagi nanti.';
+        } else if (errorMsg.contains('Cannot connect to server') ||
+                   errorMsg.contains('Connection refused') ||
+                   errorMsg.toLowerCase().contains('timeout')) {
+          errorMsg = 'Gagal menghubungkan ke server. Periksa koneksi internet.';
+        } else {
+          errorMsg = 'Terjadi kesalahan. Silakan coba lagi nanti.';
         }
         setState(() {
           _errorMessage = errorMsg;

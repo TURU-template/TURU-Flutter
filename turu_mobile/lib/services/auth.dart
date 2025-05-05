@@ -1,9 +1,9 @@
 // TURU-Flutter/turu_mobile/lib/services/auth.dart:
 import 'dart:convert';
-// Import kIsWeb untuk memeriksa apakah berjalan di web
+import 'dart:async'; // For TimeoutException
 import 'package:flutter/foundation.dart' show kIsWeb;
 // Import dart:io hanya jika tidak di web, atau guard penggunaannya
-import 'dart:io' show Platform; // Tetap import, tapi hati-hati penggunaannya
+import 'dart:io' show Platform, SocketException; // Include SocketException for network errors
 
 import 'package:http/http.dart' as http;
 
@@ -22,8 +22,12 @@ class AuthService {
       // Kode ini aman dijalankan karena kita sudah tahu BUKAN web
       try {
         if (Platform.isAndroid) {
-          print("Running on Android, using http://10.0.2.2:8080 for backend.");
-          return 'http://10.0.2.2:8080'; // IP khusus Android Emulator
+          // Ganti IP berikut dengan alamat PC-mu di jaringan lokal
+          // Gunakan alamat loopback 10.0.2.2 untuk emulator Android yang standar
+          // atau gunakan localhost untuk device fisik dengan port forwarding
+          const backendHost = 'http://10.0.2.2:8080'; // Gunakan 10.0.2.2 untuk emulator atau IP jaringan aktual
+          print("Running on Android, using $backendHost for backend.");
+          return backendHost;
         } else {
           // Asumsikan iOS Simulator atau platform mobile/desktop lainnya
           print(
@@ -41,6 +45,11 @@ class AuthService {
     }
   }
 
+  // Tambahkan getter publik untuk mengakses _baseUrl dari luar
+  static String getBaseUrl() {
+    return _baseUrl;
+  }
+
   // Fungsi Login (tidak perlu diubah, akan otomatis menggunakan getter _baseUrl)
   Future<Map<String, dynamic>> login(String username, String password) async {
     // _baseUrl di sini akan memanggil getter di atas
@@ -55,7 +64,7 @@ class AuthService {
             }, // Perbaiki typo UTF-T -> UTF-8
             body: jsonEncode({'username': username, 'password': password}),
           )
-          .timeout(const Duration(seconds: 15));
+          .timeout(const Duration(seconds: 5));
 
       print('Login response status: ${response.statusCode}');
       final body = jsonDecode(response.body);
@@ -63,32 +72,36 @@ class AuthService {
       if (response.statusCode == 200) {
         print('Login successful for $username');
         return body as Map<String, dynamic>;
+      } else if (response.statusCode == 401 || response.statusCode == 403) {
+        // Jika status 401 atau 403, lempar exception spesifik untuk kredensial salah
+        print('Login failed: Invalid credentials (status ${response.statusCode})');
+        // Coba ambil pesan error dari backend jika ada, jika tidak gunakan pesan default
+        final errorMessage = body['error'] ?? 'Invalid username or password';
+        throw Exception(errorMessage); // Gunakan pesan dari backend atau default
       } else {
+        // Untuk status error lainnya, gunakan pesan dari backend atau status code
         final errorMessage =
             body['error'] ?? 'Login failed with status ${response.statusCode}';
         print('Login failed: $errorMessage');
         throw Exception(errorMessage);
       }
+    } on SocketException catch (_) {
+      // Network error (mis. tidak ada koneksi, host tidak ditemukan)
+      print('Login failed: SocketException');
+      throw Exception('Gagal menghubungkan ke server. Periksa koneksi internet.');
+    } on TimeoutException catch (_) {
+      // Request timed out
+      print('Login failed: TimeoutException');
+      throw Exception('Koneksi ke server timeout. Silakan coba lagi.');
     } catch (e) {
-      print('Error during login request: $e');
-      // Beri pesan error spesifik jika mungkin
-      if (e is Exception && e.toString().contains('Failed host lookup')) {
-        throw Exception(
-          'Cannot connect to server. Is the backend running at the correct address ($_baseUrl)?',
-        );
-      } else if (e is Exception &&
-          e.toString().contains('Connection refused')) {
-        throw Exception(
-          'Connection refused by server. Is the backend running and port open at $_baseUrl?',
-        );
-      } else if (e is Exception && e.toString().contains('TimeoutException')) {
-        throw Exception(
-          'Connection timed out trying to reach the server at $_baseUrl.',
-        );
+      // Tangkap error lain yang mungkin terjadi (mis. error parsing JSON jika body tidak valid)
+      print('Login failed with unexpected error: $e');
+      // Jika error sudah merupakan Exception dengan pesan spesifik (dari blok if/else di atas), lempar kembali
+      if (e is Exception) {
+        rethrow;
       }
-      throw Exception(
-        'Failed to connect to the server. Please check your connection and backend status.',
-      );
+      // Jika error tipe lain, lempar exception umum
+      throw Exception('Terjadi kesalahan saat login. Silakan coba lagi.');
     }
   }
 
