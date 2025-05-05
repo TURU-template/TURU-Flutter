@@ -20,7 +20,7 @@
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS"/> <!-- Add battery optimization permission -->
 
     <application
-        android:label="turu_mobile"
+        android:label="Turu"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
 
