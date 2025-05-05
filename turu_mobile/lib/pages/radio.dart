@@ -242,7 +242,7 @@ class _RadioPageState extends State<RadioPage> {
           // Timer Options (floating left of timer button)
           if (_showTimerOptions && _remainingSeconds == null)
             Positioned(
-              bottom: 80,
+              bottom: 74,
               right: 120, // Geser ke kiri dari tombol timer
               child: Material(
                 color: Colors.transparent,
@@ -260,14 +260,15 @@ class _RadioPageState extends State<RadioPage> {
 
           // Floating Timer Button (Vertical Layout, larger)
           Positioned(
-            bottom: 80,
+            bottom: 74,
             right: 20,
             child: SizedBox(
-              width: 80,
-              height: 80,
+              width: 60,
+              height: 60,
               child: FloatingActionButton(
-                heroTag: null, // Add unique heroTag
+                heroTag: null,
                 backgroundColor: TuruColors.pink,
+                elevation: 4,
                 onPressed: () {
                   if (_remainingSeconds != null) {
                     _stopAudioAndTimer();
@@ -284,14 +285,13 @@ class _RadioPageState extends State<RadioPage> {
                   mainAxisSize: MainAxisSize.min,
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Icon(Icons.timer, size: 28),
-                    const SizedBox(height: 6),
+                    const Icon(Icons.timer, size: 24),
                     Text(
                       _remainingSeconds != null
                           ? _formatDuration(_remainingSeconds!)
-                          : "Timer",
+                          : 'Timer',
                       style: const TextStyle(
-                        fontSize: 14,
+                        fontSize: 10,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -307,24 +307,30 @@ class _RadioPageState extends State<RadioPage> {
 
   Widget _buildTimerOption(int minutes) {
     final bool isSelected = _selectedDuration == minutes * 60;
-    return ElevatedButton(
-      onPressed: () {
-        _startTimer(minutes * 60);
-        setState(() {
-          _showTimerOptions = false;
-        });
-      },
-      style: ElevatedButton.styleFrom(
-        backgroundColor: TuruColors.pink,
-        foregroundColor: Colors.white,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
+    return SizedBox(
+      width: 60,
+      height: 60,
+      child: ElevatedButton(
+        onPressed: () {
+          _startTimer(minutes * 60);
+          setState(() {
+            _showTimerOptions = false;
+          });
+        },
+        style: ElevatedButton.styleFrom(
+          minimumSize: Size.zero,
+          backgroundColor: TuruColors.pink,
+          foregroundColor: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          elevation: isSelected ? 4 : 0,
         ),
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
-        elevation: isSelected ? 4 : 0,
-        textStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+        child: Text(
+          '${minutes}m',
+          style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w600),
+        ),
       ),
-      child: Text('${minutes}m'),
     );
   }
 }
