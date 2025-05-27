@@ -87,6 +87,145 @@ class _BerandaPageState extends State<BerandaPage> {
     return "${hours}j ${minutes}m";
   }
 
+  Future<void> _showTambahDataTidurDialog() async {
+    DateTime? waktuMulai;
+    DateTime? waktuBangun;
+    final mulaiController = TextEditingController();
+    final bangunController = TextEditingController();
+
+    await showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          backgroundColor: const Color(0xFF1C2230),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          title: const Text(
+            'Tambah Data Tidur',
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          ),
+          content: StatefulBuilder(
+            builder: (context, setState) {
+              return Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextFormField(
+                    controller: mulaiController,
+                    readOnly: true,
+                    decoration: const InputDecoration(
+                      hintText: 'dd/mm/yyyy --:--',
+                      labelText: 'Waktu Mulai Tidur',
+                      labelStyle: TextStyle(color: Colors.white),
+                      suffixIcon: Icon(
+                        Icons.calendar_today,
+                        color: Colors.white,
+                      ),
+                    ),
+                    style: const TextStyle(color: Colors.white),
+                    onTap: () async {
+                      final pickedDate = await showDatePicker(
+                        context: context,
+                        initialDate: DateTime.now(),
+                        firstDate: DateTime(2020),
+                        lastDate: DateTime(2100),
+                      );
+                      if (pickedDate != null) {
+                        final pickedTime = await showTimePicker(
+                          context: context,
+                          initialTime: TimeOfDay.now(),
+                        );
+                        if (pickedTime != null) {
+                          final selectedDateTime = DateTime(
+                            pickedDate.year,
+                            pickedDate.month,
+                            pickedDate.day,
+                            pickedTime.hour,
+                            pickedTime.minute,
+                          );
+                          setState(() {
+                            waktuMulai = selectedDateTime;
+                            mulaiController.text =
+                                "${selectedDateTime.day.toString().padLeft(2, '0')}/"
+                                "${selectedDateTime.month.toString().padLeft(2, '0')}/"
+                                "${selectedDateTime.year} "
+                                "${pickedTime.hour.toString().padLeft(2, '0')}:"
+                                "${pickedTime.minute.toString().padLeft(2, '0')}";
+                          });
+                        }
+                      }
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: bangunController,
+                    readOnly: true,
+                    decoration: const InputDecoration(
+                      hintText: 'dd/mm/yyyy --:--',
+                      labelText: 'Waktu Bangun',
+                      labelStyle: TextStyle(color: Colors.white),
+                      suffixIcon: Icon(
+                        Icons.calendar_today,
+                        color: Colors.white,
+                      ),
+                    ),
+                    style: const TextStyle(color: Colors.white),
+                    onTap: () async {
+                      final pickedDate = await showDatePicker(
+                        context: context,
+                        initialDate: DateTime.now(),
+                        firstDate: DateTime(2020),
+                        lastDate: DateTime(2100),
+                      );
+                      if (pickedDate != null) {
+                        final pickedTime = await showTimePicker(
+                          context: context,
+                          initialTime: TimeOfDay.now(),
+                        );
+                        if (pickedTime != null) {
+                          final selectedDateTime = DateTime(
+                            pickedDate.year,
+                            pickedDate.month,
+                            pickedDate.day,
+                            pickedTime.hour,
+                            pickedTime.minute,
+                          );
+                          setState(() {
+                            waktuBangun = selectedDateTime;
+                            bangunController.text =
+                                "${selectedDateTime.day.toString().padLeft(2, '0')}/"
+                                "${selectedDateTime.month.toString().padLeft(2, '0')}/"
+                                "${selectedDateTime.year} "
+                                "${pickedTime.hour.toString().padLeft(2, '0')}:"
+                                "${pickedTime.minute.toString().padLeft(2, '0')}";
+                          });
+                        }
+                      }
+                    },
+                  ),
+                ],
+              );
+            },
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text('Kembali', style: TextStyle(color: TuruColors.grey)),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: TuruColors.pink),
+              onPressed: () {
+                // TODO: Simpan data ke database atau state management
+                Navigator.pop(context);
+              },
+              child: const Text('Simpan'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final now = DateTime.now();
@@ -348,8 +487,9 @@ class _BerandaPageState extends State<BerandaPage> {
             child: FloatingActionButton(
               backgroundColor: TuruColors.pink,
               onPressed: () {
-                // TODO: implement timer functionality
+                _showTambahDataTidurDialog();
               },
+
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 mainAxisAlignment: MainAxisAlignment.center,

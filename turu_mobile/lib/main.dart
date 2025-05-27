@@ -42,6 +42,10 @@ class TuruColors {
   static const Color pink = Color(0xFFDA5798);
   static const Color backdrop = Color(0xFF0C0E24);
   static const Color button = Color(0xFF007BFF);
+
+  static const Color grey = Color(
+    0xFFB0BEC5,
+  ); // atau warna abu-abu yang kamu suka
 }
 
 class TuruApp extends StatelessWidget {
@@ -67,7 +71,7 @@ class TuruApp extends StatelessWidget {
         '/login': (context) => const LoginPage(), // Added login route
         '/main': (context) => const MainScreen(),
         '/profile_details': (context) => const ProfileDetailsPage(),
-        '/edit_foto': (context) => const EditFotoPage(), 
+        '/edit_foto': (context) => const EditFotoPage(),
         '/edit_profil': (context) => const EditProfilPage(),
         '/edit_password': (context) => const EditPasswordPage(),
         '/history': (context) {

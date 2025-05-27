@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
 class SleepHistoryPage extends StatelessWidget {
   const SleepHistoryPage({super.key});
@@ -66,10 +67,7 @@ class SleepHistoryPage extends StatelessWidget {
             ),
             child: Row(
               children: [
-                Text(
-                  item['emoji'] as String,
-                  style: const TextStyle(fontSize: 40),
-                ),
+                Text(item['emoji'], style: const TextStyle(fontSize: 40)),
                 const SizedBox(width: 16),
                 Expanded(
                   child: Column(
@@ -105,10 +103,174 @@ class SleepHistoryPage extends StatelessWidget {
                     ],
                   ),
                 ),
+                IconButton(
+                  icon: const Icon(Icons.edit, color: Colors.white70),
+                  onPressed: () {
+                    showDialog(
+                      context: context,
+                      builder: (context) => _buildEditDialog(context),
+                    );
+                  },
+                ),
               ],
             ),
           );
         },
+      ),
+    );
+  }
+
+  Widget _buildEditDialog(BuildContext context) {
+    final mulaiController = TextEditingController(text: 'dd/mm/yyyy --:--');
+    final bangunController = TextEditingController(text: 'dd/mm/yyyy --:--');
+
+    return Dialog(
+      backgroundColor: const Color(0xFF0D1840),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 350),
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                'Edit Data Tidur',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 20),
+              _buildDateTimeInput(
+                context,
+                mulaiController,
+                'Waktu Mulai Tidur',
+              ),
+              const SizedBox(height: 20),
+              _buildDateTimeInput(context, bangunController, 'Waktu Bangun'),
+              const SizedBox(height: 30),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    style: TextButton.styleFrom(
+                      backgroundColor: Colors.grey[700],
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 10,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                    child: const Text(
+                      'Kembali',
+                      style: TextStyle(color: Colors.white),
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    style: TextButton.styleFrom(
+                      backgroundColor: Colors.pinkAccent,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 10,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                    child: const Text(
+                      'Simpan',
+                      style: TextStyle(color: Colors.white),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDateTimeInput(
+    BuildContext context,
+    TextEditingController controller,
+    String label,
+  ) {
+    return GestureDetector(
+      onTap: () async {
+        final date = await showDatePicker(
+          context: context,
+          initialDate: DateTime.now(),
+          firstDate: DateTime(2020),
+          lastDate: DateTime(2030),
+          builder:
+              (context, child) => Theme(
+                data: ThemeData.dark().copyWith(
+                  colorScheme: const ColorScheme.dark(
+                    primary: Colors.pinkAccent,
+                    surface: Color(0xFF1F2A52),
+                    onSurface: Colors.white,
+                  ),
+                  dialogBackgroundColor: const Color(0xFF1F2A52),
+                ),
+                child: child!,
+              ),
+        );
+
+        if (date == null) return;
+
+        final time = await showTimePicker(
+          context: context,
+          initialTime: TimeOfDay.now(),
+          builder:
+              (context, child) => Theme(
+                data: ThemeData.dark().copyWith(
+                  timePickerTheme: const TimePickerThemeData(
+                    backgroundColor: Color(0xFF1F2A52),
+                    hourMinuteTextColor: Colors.white,
+                    dialHandColor: Colors.pinkAccent,
+                  ),
+                  colorScheme: const ColorScheme.dark(
+                    primary: Colors.pinkAccent,
+                    onPrimary: Colors.white,
+                    onSurface: Colors.white,
+                  ),
+                ),
+                child: child!,
+              ),
+        );
+
+        if (time == null) return;
+
+        final dateTime = DateTime(
+          date.year,
+          date.month,
+          date.day,
+          time.hour,
+          time.minute,
+        );
+
+        controller.text = DateFormat('dd/MM/yyyy – kk:mm').format(dateTime);
+      },
+      child: AbsorbPointer(
+        child: TextField(
+          controller: controller,
+          style: const TextStyle(color: Colors.white),
+          decoration: InputDecoration(
+            labelText: label,
+            labelStyle: const TextStyle(color: Colors.white70),
+            filled: true,
+            fillColor: const Color(0xFF1E1E1E),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+            suffixIcon: const Icon(Icons.calendar_today, color: Colors.white70),
+          ),
+        ),
       ),
     );
   }
