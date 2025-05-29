@@ -23,7 +23,7 @@ class _EditPasswordPageState extends State<EditPasswordPage> {
     super.dispose();
   }
 
-  Future<void> _savePassword() async {
+  Future<void> _changePassword() async {
     final oldPw = _oldPasswordController.text.trim();
     final newPw = _newPasswordController.text.trim();
     if (oldPw.isEmpty || newPw.isEmpty) {
@@ -32,9 +32,10 @@ class _EditPasswordPageState extends State<EditPasswordPage> {
       );
       return;
     }
+
     final user = _authService.getCurrentUser();
     try {
-      await _authService.changePassword(
+      await _authService.editPassword(
         userId: user!['id'],
         oldPassword: oldPw,
         newPassword: newPw,
@@ -57,10 +58,7 @@ class _EditPasswordPageState extends State<EditPasswordPage> {
       appBar: AppBar(
         backgroundColor: TuruColors.navbarBackground,
         elevation: 0,
-        title: const Text(
-          'Edit Password',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-        ),
+        title: const Text('Edit Password', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
         iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: SingleChildScrollView(
@@ -68,96 +66,57 @@ class _EditPasswordPageState extends State<EditPasswordPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Password Lama',
-              style: TextStyle(color: Colors.white, fontSize: 14),
-            ),
+            const Text('Password Lama', style: TextStyle(color: Colors.white, fontSize: 14)),
             const SizedBox(height: 8),
-            TextField(
-              controller: _oldPasswordController,
-              obscureText: _oldPasswordObscured,
-              decoration: InputDecoration(
-                suffixIcon: IconButton(
-                  icon: Icon(
-                    _oldPasswordObscured ? Icons.visibility : Icons.visibility_off,
-                    color: Colors.white38,
-                  ),
-                  onPressed: () {
-                    setState(() {
-                      _oldPasswordObscured = !_oldPasswordObscured;
-                    });
-                  },
-                ),
-                hintText: 'Masukkan password lama',
-                hintStyle: const TextStyle(color: Colors.white38),
-                filled: true,
-                fillColor: Colors.white10,
-                enabledBorder: OutlineInputBorder(
-                  borderSide: const BorderSide(color: Colors.white24),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderSide: const BorderSide(color: Colors.white54),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-              ),
-              style: const TextStyle(color: Colors.white),
-            ),
+            _buildPasswordField(_oldPasswordController, _oldPasswordObscured, (val) {
+              setState(() => _oldPasswordObscured = !val);
+            }),
             const SizedBox(height: 24),
-            const Text(
-              'Password Baru',
-              style: TextStyle(color: Colors.white, fontSize: 14),
-            ),
+            const Text('Password Baru', style: TextStyle(color: Colors.white, fontSize: 14)),
             const SizedBox(height: 8),
-            TextField(
-              controller: _newPasswordController,
-              obscureText: _newPasswordObscured,
-              decoration: InputDecoration(
-                suffixIcon: IconButton(
-                  icon: Icon(
-                    _newPasswordObscured ? Icons.visibility : Icons.visibility_off,
-                    color: Colors.white38,
-                  ),
-                  onPressed: () {
-                    setState(() {
-                      _newPasswordObscured = !_newPasswordObscured;
-                    });
-                  },
-                ),
-                hintText: 'Masukkan password baru',
-                hintStyle: const TextStyle(color: Colors.white38),
-                filled: true,
-                fillColor: Colors.white10,
-                enabledBorder: OutlineInputBorder(
-                  borderSide: const BorderSide(color: Colors.white24),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderSide: const BorderSide(color: Colors.white54),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-              ),
-              style: const TextStyle(color: Colors.white),
-            ),
+            _buildPasswordField(_newPasswordController, _newPasswordObscured, (val) {
+              setState(() => _newPasswordObscured = !val);
+            }),
             const SizedBox(height: 32),
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: _savePassword,
+                onPressed: _changePassword,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: TuruColors.indigo,
                   padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                 ),
-                child: const Text(
-                  'Simpan',
-                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-                ),
+                child: const Text('Simpan', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPasswordField(TextEditingController controller, bool obscure, ValueChanged<bool> onToggle) {
+    return TextField(
+      controller: controller,
+      obscureText: obscure,
+      style: const TextStyle(color: Colors.white),
+      decoration: InputDecoration(
+        suffixIcon: IconButton(
+          icon: Icon(obscure ? Icons.visibility : Icons.visibility_off, color: Colors.white38),
+          onPressed: () => onToggle(!obscure),
+        ),
+        hintText: 'Masukkan password',
+        hintStyle: const TextStyle(color: Colors.white38),
+        filled: true,
+        fillColor: Colors.white10,
+        enabledBorder: OutlineInputBorder(
+          borderSide: const BorderSide(color: Colors.white24),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderSide: const BorderSide(color: Colors.white54),
+          borderRadius: BorderRadius.circular(8),
         ),
       ),
     );

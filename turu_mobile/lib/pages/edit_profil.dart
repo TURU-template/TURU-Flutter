@@ -28,17 +28,39 @@ class _EditProfilPageState extends State<EditProfilPage> {
     super.dispose();
   }
 
+  Future<void> _updateName() async {
+    final newName = _newNameController.text.trim();
+    if (newName.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Nama baru tidak boleh kosong')),
+      );
+      return;
+    }
+
+    final user = _authService.getCurrentUser();
+    final userId = user!['id'];
+
+    try {
+      await _authService.editName(userId: userId, username: newName);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Nama berhasil diperbarui')),
+      );
+      Navigator.pop(context);
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.toString())),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor:  TuruColors.primaryBackground,
+      backgroundColor: TuruColors.primaryBackground,
       appBar: AppBar(
-        backgroundColor:TuruColors.navbarBackground,
+        backgroundColor: TuruColors.navbarBackground,
         elevation: 0,
-        title: const Text(
-          'Edit Profil',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-        ),
+        title: const Text('Edit Profil', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
         iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: SingleChildScrollView(
@@ -46,96 +68,33 @@ class _EditProfilPageState extends State<EditProfilPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Nama Lama',
-              style: TextStyle(color: Colors.white, fontSize: 14),
-            ),
+            const Text('Nama Lama', style: TextStyle(color: Colors.white, fontSize: 14)),
             const SizedBox(height: 8),
             TextField(
               controller: _oldNameController,
               readOnly: true,
-              decoration: InputDecoration(
-                hintText: 'Nama lama',
-                hintStyle: const TextStyle(color: Colors.white38),
-                filled: true,
-                fillColor: Colors.white10,
-                enabledBorder: OutlineInputBorder(
-                  borderSide: const BorderSide(color: Colors.white24),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderSide: const BorderSide(color: Colors.white54),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-              ),
               style: const TextStyle(color: Colors.white),
+              decoration: _inputDecoration('Nama lama'),
             ),
             const SizedBox(height: 24),
-            const Text(
-              'Nama Baru',
-              style: TextStyle(color: Colors.white, fontSize: 14),
-            ),
+            const Text('Nama Baru', style: TextStyle(color: Colors.white, fontSize: 14)),
             const SizedBox(height: 8),
             TextField(
               controller: _newNameController,
-              decoration: InputDecoration(
-                hintText: 'Masukkan nama baru',
-                hintStyle: const TextStyle(color: Colors.white38),
-                filled: true,
-                fillColor: Colors.white10,
-                enabledBorder: OutlineInputBorder(
-                  borderSide: const BorderSide(color: Colors.white24),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderSide: const BorderSide(color: Colors.white54),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-              ),
               style: const TextStyle(color: Colors.white),
+              decoration: _inputDecoration('Masukkan nama baru'),
             ),
             const SizedBox(height: 32),
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: () async {
-                  final newName = _newNameController.text.trim();
-                  if (newName.isEmpty) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Nama baru tidak boleh kosong'))
-                    );
-                    return;
-                  }
-                  final user = _authService.getCurrentUser();
-                  // Ensure userId is int
-                  final rawId = user!['id'];
-                  final userId = rawId is String ? int.parse(rawId) : (rawId as int);
-                  try {
-                    await _authService.updateProfile(
-                      userId: userId,
-                      username: newName,
-                    );
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Profil berhasil diperbarui'))
-                    );
-                    Navigator.pop(context);
-                  } catch (e) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text(e.toString()))
-                    );
-                  }
-                },
+                onPressed: _updateName,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: TuruColors.indigo,
                   padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                 ),
-                child: const Text(
-                  'Simpan',
-                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-                ),
+                child: const Text('Simpan', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
               ),
             ),
           ],
@@ -143,4 +102,19 @@ class _EditProfilPageState extends State<EditProfilPage> {
       ),
     );
   }
+
+  InputDecoration _inputDecoration(String hint) => InputDecoration(
+        hintText: hint,
+        hintStyle: const TextStyle(color: Colors.white38),
+        filled: true,
+        fillColor: Colors.white10,
+        enabledBorder: OutlineInputBorder(
+          borderSide: const BorderSide(color: Colors.white24),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderSide: const BorderSide(color: Colors.white54),
+          borderRadius: BorderRadius.circular(8),
+        ),
+      );
 }

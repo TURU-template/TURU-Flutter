@@ -1,11 +1,10 @@
-import 'dart:async'; // Untuk TimeoutException
+import 'dart:async';
 import 'dart:convert';
-import 'dart:io' show Platform, SocketException; // SocketException hanya untuk non-web
+import 'dart:io' show Platform, SocketException;
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:http/http.dart' as http;
 
 class AuthService {
-  // Getter untuk URL backend tergantung platform
   static String get _baseUrl {
     const productionUrl = 'http://10.0.2.2:8080';
 
@@ -30,7 +29,6 @@ class AuthService {
 
   static String getBaseUrl() => _baseUrl;
 
-  /// Fungsi login pengguna
   Future<Map<String, dynamic>> login(String username, String password) async {
     final url = Uri.parse('$_baseUrl/api/login');
     print('Sending login request to $url');
@@ -65,7 +63,6 @@ class AuthService {
     }
   }
 
-  /// Fungsi register pengguna baru
   Future<void> register({
     required String username,
     required String password,
@@ -115,7 +112,6 @@ class AuthService {
     }
   }
 
-  /// Status login pengguna
   static bool _isUserLoggedIn = false;
   static Map<String, dynamic>? _loggedInUserData;
 
@@ -149,7 +145,7 @@ class AuthService {
 
   Map<String, dynamic>? getCurrentUser() => _loggedInUserData;
 
-  /// Update username pengguna
+  /// Update username pengguna (alias untuk editName)
   Future<void> updateProfile({
     required int userId,
     required String username,
@@ -179,7 +175,15 @@ class AuthService {
     }
   }
 
-  /// Ubah password pengguna
+  /// Alias: editName
+  Future<void> editName({
+    required int userId,
+    required String username,
+  }) async {
+    return updateProfile(userId: userId, username: username);
+  }
+
+  /// Ubah password pengguna (alias untuk editPassword)
   Future<void> changePassword({
     required int userId,
     required String oldPassword,
@@ -211,5 +215,18 @@ class AuthService {
       print('changePassword error: $e');
       throw Exception('Gagal mengubah password. Periksa koneksi ke server.');
     }
+  }
+
+  /// Alias: editPassword
+  Future<void> editPassword({
+    required int userId,
+    required String oldPassword,
+    required String newPassword,
+  }) async {
+    return changePassword(
+      userId: userId,
+      oldPassword: oldPassword,
+      newPassword: newPassword,
+    );
   }
 }
