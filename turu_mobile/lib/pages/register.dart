@@ -214,7 +214,7 @@ class _RegisterPageState extends State<RegisterPage> {
                           obscureText: true,
                           validator: (val) {
                             if (val == null || val.isEmpty) return 'Password tidak boleh kosong';
-                            if (val.length < 6) return 'Password minimal 6 karakter';
+                            if (val.length < 4) return 'Password minimal 4 karakter';
                             return null;
                           },
                         ),
