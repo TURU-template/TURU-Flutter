@@ -82,33 +82,54 @@ class AuthService {
           'jk': (jk == 'L' || jk == 'P') ? jk : null,
           'tanggal_lahir': tanggalLahir,
         }),
-      ).timeout(const Duration(seconds: 5));
+      ).timeout(const Duration(seconds: 10));
 
       print('Register response status: ${response.statusCode}');
-      final body = jsonDecode(response.body);
+      print('Register response body: ${response.body}');
 
       if (response.statusCode == 200) {
         print('Register success for $username');
         return;
-      } else if (response.statusCode == 409) {
-        throw Exception('Username sudah digunakan.');
-      } else {
-        final errorMessage = body['error'] ?? 'Gagal registrasi (${response.statusCode})';
-        throw Exception(errorMessage);
+      } 
+      
+      // Handle kasus username sudah ada (409 Conflict)
+      if (response.statusCode == 409) {
+        print('Username already exists: $username');
+        throw Exception('Username sudah digunakan');
       }
+      
+      // Handle error lainnya
+      String errorMessage;
+      try {
+        final body = jsonDecode(response.body) as Map<String, dynamic>;
+        errorMessage = body['error'] ?? 'Gagal registrasi (${response.statusCode})';
+      } catch (e) {
+        errorMessage = 'Gagal registrasi (${response.statusCode}): ${response.body}';
+      }
+      
+      throw Exception(errorMessage);
+    } on SocketException catch (e) {
+      print('Register SocketException: $e');
+      throw Exception('Gagal menghubungkan ke server. Periksa koneksi internet Anda.');
+    } on TimeoutException catch (e) {
+      print('Register TimeoutException: $e');
+      throw Exception('Permintaan ke server melebihi batas waktu.');
+    } on FormatException catch (e) {
+      print('Register FormatException: $e');
+      throw Exception('Format respons server tidak valid.');
     } catch (e) {
+      print('Register general exception: $e');
       final msg = e.toString();
-      if (msg.contains('Username already exists')) {
-        throw Exception('Username sudah digunakan.');
-      } else if (msg.contains('Failed host lookup')) {
-        throw Exception('Tidak dapat terhubung ke server di $_baseUrl. Periksa koneksi.');
-      } else if (msg.contains('Connection refused')) {
-        throw Exception('Server menolak koneksi. Pastikan backend berjalan di $_baseUrl.');
-      } else if (msg.contains('TimeoutException')) {
-        throw Exception('Permintaan ke server timeout ($_baseUrl).');
+      
+      // Prioritaskan error username sudah ada
+      if (msg.contains('Username sudah digunakan') || 
+          msg.contains('already exists') || 
+          msg.contains('409')) {
+        throw Exception('Username sudah digunakan');
       }
-
-      throw Exception('Gagal terhubung ke server. Periksa koneksi dan status backend.');
+      
+      // Re-throw exception
+      rethrow;
     }
   }
 

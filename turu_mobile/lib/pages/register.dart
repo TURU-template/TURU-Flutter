@@ -93,25 +93,36 @@ class _RegisterPageState extends State<RegisterPage> {
       if (mounted) {
         // Ambil pesan asli tanpa prefix "Exception: "
         String rawMsg = e.toString().replaceFirst('Exception: ', '');
+        
+        // Debug log untuk melihat error asli
+        print('Register error raw message: $rawMsg');
+        
         String errorMsg;
         
         // Prioritaskan penanganan error username sudah ada
-        if (rawMsg.contains('Username already exists') || 
-            rawMsg.contains('sudah terdaftar') ||
-            rawMsg.contains('409')) { // Status code 409 = Conflict
-          errorMsg = 'Username telah digunakan, gunakan username lain';
+        if (rawMsg.toLowerCase().contains('username sudah digunakan') || 
+            rawMsg.toLowerCase().contains('already exists') || 
+            rawMsg.contains('409')) {
+          // Pesan khusus untuk username yang sudah ada
+          errorMsg = '⚠️ Username telah digunakan, silakan pilih username lain';
+          // Fokus kembali ke field username
+          _usernameController.selection = TextSelection(
+            baseOffset: 0, 
+            extentOffset: _usernameController.text.length
+          );
+          FocusScope.of(context).requestFocus();
         } else if (rawMsg.contains('Username and password are required')) {
           errorMsg = 'Username dan password harus diisi.';
         } else if (rawMsg.contains('Invalid request format')) {
           errorMsg = 'Format input tidak valid.';
         } else if (rawMsg.toLowerCase().contains('timeout') || 
-                   rawMsg.contains('connection') ||
+                   rawMsg.toLowerCase().contains('connection') ||
+                   rawMsg.toLowerCase().contains('koneksi') ||
                    rawMsg.contains('Failed host lookup')) {
-          // Koneksi error tetap ditampilkan sebagai masalah koneksi
           errorMsg = 'Gagal terhubung ke server. Periksa koneksi internet.';
         } else {
           // Fallback dengan pesan generik yang lebih informatif
-          errorMsg = 'Terjadi kesalahan. Silakan coba lagi nanti.';
+          errorMsg = 'Terjadi kesalahan: $rawMsg';
           // Log error asli untuk debugging
           print('Register error: $rawMsg');
         }
@@ -328,7 +339,25 @@ class _RegisterPageState extends State<RegisterPage> {
                         ),
                         if (_errorMessage.isNotEmpty) ...[
                           const SizedBox(height: 16),
-                          Text(_errorMessage, textAlign: TextAlign.center, style: const TextStyle(color: Colors.red)),
+                          Container(
+                            padding: EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: _errorMessage.contains('Username telah digunakan') 
+                                  ? Colors.red.withOpacity(0.2) 
+                                  : Colors.transparent,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              _errorMessage,
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                color: Colors.red,
+                                fontWeight: _errorMessage.contains('Username telah digunakan')
+                                    ? FontWeight.bold
+                                    : FontWeight.normal,
+                              ),
+                            ),
+                          ),
                         ],
                         const SizedBox(height: 32),
                         // Register Button
