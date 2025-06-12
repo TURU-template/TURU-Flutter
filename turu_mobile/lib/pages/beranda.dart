@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:bootstrap_icons/bootstrap_icons.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:fl_chart/fl_chart.dart';
@@ -43,6 +44,7 @@ class _BerandaPageState extends State<BerandaPage> {
     super.initState();
     isSleeping = widget.initialSleeping ?? false;
     sleepStartTime = widget.initialStartTime;
+    // ignore: unused_local_variable
     var userData = AuthService().getCurrentUser();
     if (isSleeping && sleepStartTime != null) {
       _startSleepTimer();
@@ -88,6 +90,94 @@ class _BerandaPageState extends State<BerandaPage> {
     return "${hours}j ${minutes}m";
   }
 
+  // This method is from beranda_OLD.dart
+  void _showSleepAnalysisDialog() {
+    showDialog(
+      context: context,
+      builder:
+          (_) => AlertDialog(
+            backgroundColor: TuruColors.darkblue,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
+            title: const Text(
+              "Analisis Tidur",
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            content: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const Icon(
+                    BootstrapIcons.moon_stars_fill,
+                    color: Colors.white,
+                    size: 64,
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    "Rerata Durasi Tidur:",
+                    style: TextStyle(color: Colors.white70),
+                    textAlign: TextAlign.center,
+                  ),
+                  const Text(
+                    "7,5 Jam",
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 18,
+                      color: Colors.white,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    "Berdasarkan biodata Anda, tidur Anda sudah cukup baik, dapat dilambangkan dengan Singa Prima 🦁",
+                    style: TextStyle(color: Colors.white70),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 32),
+                  const Text(
+                    "Saran",
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    "Anda memerlukan tidur 30 menit lebih awal dari tidur kebiasaan Anda, atau bangun lebih akhir 30 menit dari kebiasaan bangun anda.",
+                    style: TextStyle(color: Colors.white70),
+                  ),
+                  const SizedBox(height: 24),
+                  Center(
+                    child: TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      style: TextButton.styleFrom(
+                        foregroundColor: Colors.white,
+                        backgroundColor: Colors.grey[700],
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 24,
+                          vertical: 12,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      child: const Text("Tutup"),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+    );
+  }
+
+  // This method is from the newer beranda.dart
   Future<void> _showTambahDataTidurDialog() async {
     DateTime? waktuMulai;
     DateTime? waktuBangun;
@@ -300,51 +390,43 @@ class _BerandaPageState extends State<BerandaPage> {
                 ),
               ),
 
-              const SizedBox(height: 32),
-
-              // Tips Button
-              ElevatedButton.icon(
-                onPressed: () {
-                  Navigator.pushNamed(context, '/tips');
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: TuruColors.indigo,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 20,
-                    vertical: 12,
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  elevation: 4,
-                ),
-                icon: const Icon(Icons.nightlight_round, size: 20),
-                label: const Text("Tips Tidur", style: TextStyle(fontSize: 16)),
-              ),
-
               const SizedBox(height: 48),
 
               const _SectionTitle(title: "Data Tidur"),
               const SizedBox(height: 8),
 
-              Text(
-                sleepStartTime != null
-                    ? "Mulai: ${sleepStartTime!.hour}:${sleepStartTime!.minute.toString().padLeft(2, '0')}:${sleepStartTime!.second.toString().padLeft(2, '0')}"
-                    : "Mulai: -",
-                style: const TextStyle(color: TuruColors.textColor2),
+              // This is the new data section you provided
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    sleepStartTime != null
+                        ? "Mulai: ${sleepStartTime!.hour}:${sleepStartTime!.minute.toString().padLeft(2, '0')}:${sleepStartTime!.second.toString().padLeft(2, '0')}"
+                        : "Mulai: 22:10",
+                    // Mulai -
+                    style: const TextStyle(color: TuruColors.textColor2),
+                  ),
+                  const SizedBox(width: 3),
+                  const Text(
+                    "|",
+                    style: TextStyle(color: TuruColors.textColor2),
+                  ),
+                  const SizedBox(width: 3),
+                  Text(
+                    isSleeping
+                        ? "Selesai: -"
+                        : sleepStartTime != null
+                        ? "Selesai: ${now.hour}:${now.minute.toString().padLeft(2, '0')}:${now.second.toString().padLeft(2, '0')}"
+                        : "Selesai: 06:22",
+                    style: const TextStyle(color: TuruColors.textColor2),
+                  ),
+                ],
               ),
-              Text(
-                isSleeping
-                    ? "Selesai: -"
-                    : sleepStartTime != null
-                    ? "Selesai: ${now.hour}:${now.minute.toString().padLeft(2, '0')}:${now.second.toString().padLeft(2, '0')}"
-                    : "Selesai: -",
-                style: const TextStyle(color: TuruColors.textColor2),
-              ),
+
               Text(
                 sleepStartTime != null
                     ? _formatDuration(sleepDuration)
-                    : "Durasi: -",
+                    : "8 j 12 m",
                 style: const TextStyle(
                   fontSize: 32,
                   fontWeight: FontWeight.w500,
@@ -385,10 +467,34 @@ class _BerandaPageState extends State<BerandaPage> {
                 ),
               ),
 
-              const SizedBox(height: 48),
+              const SizedBox(height: 32),
+              ElevatedButton(
+                onPressed: _showSleepAnalysisDialog,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: TuruColors.indigo,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  elevation: 4,
+                ),
+                child: const Text(
+                  "Analisis Tidur",
+                  style: TextStyle(color: Colors.white),
+                ),
+              ),
+              const SizedBox(height: 64),
 
               const _SectionTitle(title: "Statistik Tidur Mingguan"),
               const SizedBox(height: 8),
+              const Text(
+                "07 June 2025 - Hari Ini",
+                style: TextStyle(color: TuruColors.textColor2),
+              ),
+              const SizedBox(height: 16),
               AspectRatio(
                 aspectRatio: 1.6,
                 child: BarChart(
@@ -399,30 +505,43 @@ class _BerandaPageState extends State<BerandaPage> {
                           showTitles: true,
                           getTitlesWidget: (value, _) {
                             final index = value.toInt();
-                            return Text(
-                              labels[index],
-                              style: TextStyle(
-                                color:
-                                    index == todayIndex
-                                        ? TuruColors.pink
-                                        : Colors.grey[400],
-                                fontWeight:
-                                    index == todayIndex
-                                        ? FontWeight.bold
-                                        : FontWeight.normal,
-                              ),
+                            return Column(
+                              children: [
+                                Text(
+                                  labels[index],
+                                  style: TextStyle(
+                                    color:
+                                        index == todayIndex
+                                            ? TuruColors.pink
+                                            : Colors.grey[400],
+                                    fontWeight:
+                                        index == todayIndex
+                                            ? FontWeight.bold
+                                            : FontWeight.normal,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  displayedScores[index] == 0 ? '0' : displayedScores[index].toString(),
+                                  style: const TextStyle(
+                                    color: Colors.grey,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ],
                             );
                           },
-                          reservedSize: 28,
+                          reservedSize: 45,
                         ),
                       ),
-                      leftTitles: AxisTitles(
+                      leftTitles: const AxisTitles(
                         sideTitles: SideTitles(showTitles: false),
                       ),
-                      rightTitles: AxisTitles(
+                      rightTitles: const AxisTitles(
                         sideTitles: SideTitles(showTitles: false),
                       ),
-                      topTitles: AxisTitles(
+                      topTitles: const AxisTitles(
                         sideTitles: SideTitles(showTitles: false),
                       ),
                     ),
@@ -435,8 +554,8 @@ class _BerandaPageState extends State<BerandaPage> {
                           BarChartRodData(
                             toY: score == 0 ? 3 : score.toDouble(),
                             width: 16,
-                            color: isToday ? TuruColors.pink : Colors.blue[300],
-                            borderRadius: BorderRadius.circular(6),
+                            color: isToday ? TuruColors.purple : TuruColors.indigo,
+                            borderRadius: BorderRadius.zero,
                           ),
                         ],
                       );
@@ -446,20 +565,22 @@ class _BerandaPageState extends State<BerandaPage> {
                   ),
                 ),
               ),
-
               const SizedBox(height: 24),
 
+              // Modified button to hug content
               ElevatedButton(
                 onPressed: () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (context) => SleepHistoryPage()),
+                    MaterialPageRoute(
+                      builder: (context) => const SleepHistoryPage(),
+                    ),
                   );
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: TuruColors.indigo,
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 20,
+                    horizontal: 16,
                     vertical: 12,
                   ),
                   shape: RoundedRectangleBorder(
@@ -478,7 +599,7 @@ class _BerandaPageState extends State<BerandaPage> {
           ),
         ),
 
-        // Floating Action Button
+        // Floating Action Button from the newer beranda.dart
         Positioned(
           bottom: 80,
           right: 20,
@@ -490,11 +611,10 @@ class _BerandaPageState extends State<BerandaPage> {
               onPressed: () {
                 _showTambahDataTidurDialog();
               },
-
-              child: Column(
+              child: const Column(
                 mainAxisSize: MainAxisSize.min,
                 mainAxisAlignment: MainAxisAlignment.center,
-                children: const [
+                children: [
                   Icon(Icons.post_add, size: 28),
                   SizedBox(height: 6),
                   Text(
@@ -522,7 +642,7 @@ class _SectionTitle extends StatelessWidget {
       style: const TextStyle(
         color: TuruColors.pink,
         fontSize: 18,
-        fontWeight: FontWeight.w500,
+        fontWeight: FontWeight.w900,
         fontStyle: FontStyle.italic,
       ),
     );
