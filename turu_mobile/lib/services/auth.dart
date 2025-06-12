@@ -42,7 +42,7 @@ class AuthService {
 
       print('Login response status: ${response.statusCode}');
       final body = jsonDecode(response.body);
-
+      
       if (response.statusCode == 200) {
         print('Login success for $username');
         return body as Map<String, dynamic>;
@@ -138,7 +138,7 @@ class AuthService {
 
   Future<void> setLoggedIn(Map<String, dynamic> userData) async {
     _isUserLoggedIn = true;
-    final rawUser = userData['user'];
+    final rawUser = userData;
 
     if (rawUser is Map<String, dynamic>) {
       final userMap = Map<String, dynamic>.from(rawUser);

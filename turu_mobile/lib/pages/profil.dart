@@ -30,12 +30,39 @@ class _ProfilPageState extends State<ProfilPage> {
   String _countdownText = '';
   final NotificationService _notificationService = NotificationService();
 
+  // --- START PERBAIKAN ---
+  // Deklarasikan userData sebagai properti state agar dapat diakses di seluruh kelas
+  Map<String, dynamic>? _loggedInUserData; // Gunakan _ untuk konvensi private
+  // --- END PERBAIKAN ---
+
   @override
   void initState() {
     super.initState();
     _loadProfileImage();
     _loadReminderTime(); // Load reminder time on init
+    // --- START PERBAIKAN ---
+    // Panggil _loadUserData untuk mendapatkan data pengguna
+    _loadUserData();
+    // --- END PERBAIKAN ---
   }
+
+  // --- START PERBAIKAN ---
+  // Fungsi baru untuk memuat data pengguna dari AuthService
+  void _loadUserData() {
+    setState(() {
+      _loggedInUserData = AuthService().getCurrentUser();
+    });
+    // Opsional: Lakukan logging untuk memastikan data terbaca
+    if (_loggedInUserData != null) {
+      print('Data pengguna dimuat di ProfilPage: ${_loggedInUserData!['username']}');
+      _loggedInUserData!.forEach((key, value) { // Iterasi dan cetak setiap kunci-nilai
+      print('$key: $value (${value.runtimeType})');
+    });
+    } else {
+      print('Pengguna belum login atau data tidak tersedia saat ProfilPage dimuat.');
+    }
+  }
+  // --- END PERBAIKAN ---
 
   @override
   void dispose() {
@@ -198,8 +225,6 @@ class _ProfilPageState extends State<ProfilPage> {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_reminderPrefsKeyHour);
     await prefs.remove(_reminderPrefsKeyMinute);
-    // No need to cancel zonedSchedule notification anymore
-    // await _notificationService.cancelNotification(_reminderNotificationId);
     _countdownTimer?.cancel();
     setState(() {
       _reminderTime = null;
@@ -214,22 +239,20 @@ class _ProfilPageState extends State<ProfilPage> {
     final TimeOfDay? picked = await showTimePicker(
       context: context,
       initialTime: _reminderTime ?? TimeOfDay.now(),
-      // Ensure 24-hour format for the picker
-      initialEntryMode: TimePickerEntryMode.input, // Often helps enforce format
+      initialEntryMode: TimePickerEntryMode.input,
       builder: (context, child) {
         return MediaQuery(
           data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: true),
           child: Theme(
-            // Keep existing theme customization
             data: ThemeData.dark().copyWith(
               colorScheme: const ColorScheme.dark(
-                primary: TuruColors.indigo, // header background color
-                onPrimary: Colors.white, // header text color
-                onSurface: Colors.white, // body text color
+                primary: TuruColors.indigo,
+                onPrimary: Colors.white,
+                onSurface: Colors.white,
               ),
               textButtonTheme: TextButtonThemeData(
                 style: TextButton.styleFrom(
-                  foregroundColor: TuruColors.indigo, // button text color
+                  foregroundColor: TuruColors.indigo,
                 ),
               ),
             ),
@@ -244,14 +267,7 @@ class _ProfilPageState extends State<ProfilPage> {
         _reminderTime = picked;
       });
       await _saveReminderTime(picked);
-      // Don't use zonedSchedule here anymore. The timer will handle it.
-      // await _notificationService.scheduleDailyNotification(
-      //   id: _reminderNotificationId,
-      //   title: '😴 Waktunya Tidur!',
-      //   body: 'Sudah waktunya untuk istirahat. Selamat tidur!',
-      //   scheduledTime: picked,
-      // );
-      _startCountdown(); // Start/Restart countdown timer which will trigger the notification
+      _startCountdown();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
@@ -263,22 +279,21 @@ class _ProfilPageState extends State<ProfilPage> {
   }
 
   void _startCountdown() {
-    print("Attempting to start countdown..."); // Log start
-    _countdownTimer?.cancel(); // Cancel any existing timer
+    print("Attempting to start countdown...");
+    _countdownTimer?.cancel();
     if (_reminderTime == null) {
-      print("Countdown not started: _reminderTime is null."); // Log reason
+      print("Countdown not started: _reminderTime is null.");
       return;
     }
 
-    print("Calling initial _updateCountdown()..."); // Log initial update
-    _updateCountdown(); // Initial update
+    print("Calling initial _updateCountdown()...");
+    _updateCountdown();
 
-    print("Starting Timer.periodic..."); // Log timer start
+    print("Starting Timer.periodic...");
     _countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      // print("Timer tick - calling _updateCountdown()"); // Log tick (can be verbose)
       _updateCountdown();
     });
-    print("Countdown timer started successfully."); // Log success
+    print("Countdown timer started successfully.");
   }
 
   void _updateCountdown() {
@@ -297,7 +312,7 @@ class _ProfilPageState extends State<ProfilPage> {
       now.day,
       _reminderTime!.hour,
       _reminderTime!.minute,
-      0, // Seconds set to 0
+      0,
     );
 
     if (scheduledDateTime.isBefore(now)) {
@@ -306,21 +321,17 @@ class _ProfilPageState extends State<ProfilPage> {
 
     final Duration remaining = scheduledDateTime.difference(now);
 
-    // Check if the timer has reached zero and is still active
     if (remaining.inSeconds <= 0 && (_countdownTimer?.isActive ?? false)) {
       print("Countdown finished. Triggering notification...");
-      _countdownTimer?.cancel(); // Stop the current timer
+      _countdownTimer?.cancel();
 
-      // Show the notification immediately
       _notificationService.showImmediateNotification(
-        id: _reminderNotificationId, // Use the reminder ID
+        id: _reminderNotificationId,
         title: '😴 Waktunya Tidur!',
         body: 'Sudah waktunya untuk istirahat. Selamat tidur!',
         payload: 'Sleep Reminder Triggered',
       );
 
-      // Restart the countdown for the next day immediately
-      // Use a short delay to ensure state updates settle if needed, though likely not required
       Future.delayed(const Duration(milliseconds: 100), () {
         if (mounted) {
           print("Restarting countdown for the next day...");
@@ -328,12 +339,10 @@ class _ProfilPageState extends State<ProfilPage> {
         }
       });
     } else if (mounted) {
-      // Update the countdown text if timer is still running
       setState(() {
         _countdownText = _formatDuration(remaining);
       });
     } else {
-      // Widget is disposed, cancel timer
       print("Countdown update skipped: widget not mounted.");
       _countdownTimer?.cancel();
     }
@@ -357,10 +366,24 @@ class _ProfilPageState extends State<ProfilPage> {
     }
   }
 
-  // --- End Reminder Functions ---
-
   @override
   Widget build(BuildContext context) {
+    // --- START PERBAIKAN ---
+    // Ambil data pengguna di sini sebelum digunakan di UI
+    // Pastikan _loggedInUserData tidak null sebelum mengakses propertinya
+    final String username = _loggedInUserData?['username'] ?? 'Tamu';
+    final String? rawGender = _loggedInUserData?['jk'] ?? '-';
+    String gender;
+    if (rawGender == 'L') {
+    gender = 'Laki-laki';
+    } else if (rawGender == 'P') {
+    gender = 'Perempuan';
+    } else {
+    gender = '-';
+    }
+    final String birthDate = _loggedInUserData?['tanggalLahir'] ?? '-';
+    // --- END PERBAIKAN ---
+
     return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(horizontal: 32),
       child: Column(
@@ -370,35 +393,34 @@ class _ProfilPageState extends State<ProfilPage> {
             onTap: () {
               Navigator.pushNamed(context, '/profile_details');
             },
-            child:
-                _profileImage != null
-                    ? CircleAvatar(
-                      radius: 50,
-                      backgroundImage: FileImage(_profileImage!),
-                    )
-                    : const CircleAvatar(
-                      radius: 50,
-                      backgroundImage: AssetImage(
-                        'assets/images/LOGO_Turu.png',
-                      ),
+            child: _profileImage != null
+                ? CircleAvatar(
+                    radius: 50,
+                    backgroundImage: FileImage(_profileImage!),
+                  )
+                : const CircleAvatar(
+                    radius: 50,
+                    backgroundImage: AssetImage(
+                      'assets/images/LOGO_Turu.png',
                     ),
+                  ),
           ),
           const SizedBox(height: 16),
-          const Center(
+          Center( // Hapus const di sini karena ada nilai variabel
             child: Column(
               children: [
                 Text(
-                  'Nama Pengguna',
-                  style: TextStyle(
+                  username, // Gunakan variabel username yang sudah diperiksa null
+                  style: const TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.bold,
                     color: Colors.white,
                   ),
                 ),
-                SizedBox(height: 4),
+                const SizedBox(height: 4),
                 Text(
-                  'Laki-laki | 2002-03-01',
-                  style: TextStyle(color: Colors.white70),
+                  '$gender | $birthDate', // Gunakan variabel gender dan birthDate
+                  style: const TextStyle(color: Colors.white70),
                 ),
               ],
             ),
@@ -416,39 +438,34 @@ class _ProfilPageState extends State<ProfilPage> {
             ),
           ),
           const SizedBox(height: 8),
-          // --- Sleep Reminder Section ---
-          _buildReminderSection(), // Add the reminder UI
-          // --- Test Notification Button Removed ---
-          // --- End Sleep Reminder Section ---
+          _buildReminderSection(),
           _settingItem(
             icon: BootstrapIcons.trash,
             label: 'Hapus Rekaman Tidur',
             color: TuruColors.pink,
-            onTap:
-                () => _showConfirmationDialog(
-                  context: context,
-                  title: "Yakin Hapus Data Tidur?",
-                  description:
-                      "Data rekaman tidurmu akan dihapus secara permanen. Tindakan ini tidak bisa dibatalkan.",
-                  onConfirm: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text("Data tidur dihapus.")),
-                    );
-                  },
-                ),
+            onTap: () => _showConfirmationDialog(
+              context: context,
+              title: "Yakin Hapus Data Tidur?",
+              description:
+                  "Data rekaman tidurmu akan dihapus secara permanen. Tindakan ini tidak bisa dibatalkan.",
+              onConfirm: () {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text("Data tidur dihapus.")),
+                );
+              },
+            ),
           ),
           _settingItem(
             icon: BootstrapIcons.box_arrow_right,
             label: 'Keluar Akun',
             color: TuruColors.pink,
-            onTap:
-                () => _showConfirmationDialog(
-                  context: context,
-                  title: "Yakin Log Out Akun?",
-                  description:
-                      "Kamu akan keluar dari akun ini. Pastikan data kamu sudah tersimpan.",
-                  onConfirm: _performLogout,
-                ),
+            onTap: () => _showConfirmationDialog(
+              context: context,
+              title: "Yakin Log Out Akun?",
+              description:
+                  "Kamu akan keluar dari akun ini. Pastikan data kamu sudah tersimpan.",
+              onConfirm: _performLogout,
+            ),
           ),
         ],
       ),
@@ -458,22 +475,19 @@ class _ProfilPageState extends State<ProfilPage> {
   // Builds the UI section for the sleep reminder
   Widget _buildReminderSection() {
     if (_reminderTime == null) {
-      // Show button to set reminder
       return _settingItem(
-        icon: BootstrapIcons.clock_history, // Or BootstrapIcons.alarm
+        icon: BootstrapIcons.clock_history,
         label: 'Setel Pengingat Tidur',
-        color: TuruColors.blue, // Use a distinct color
+        color: TuruColors.blue,
         onTap: () => _selectTime(context),
       );
     } else {
-      // Show reminder details and delete button
-      // Manually format time for display to ensure 24-hour format
       final String formattedTime =
           '${_reminderTime!.hour.toString().padLeft(2, '0')}:${_reminderTime!.minute.toString().padLeft(2, '0')}';
       return ListTile(
         leading: const Icon(BootstrapIcons.clock_fill, color: TuruColors.blue),
         title: Text(
-          'Pengingat Tidur: $formattedTime', // Use manually formatted time
+          'Pengingat Tidur: $formattedTime',
           style: const TextStyle(color: Colors.white),
         ),
         subtitle: Text(
@@ -485,7 +499,7 @@ class _ProfilPageState extends State<ProfilPage> {
           tooltip: 'Hapus Pengingat',
           onPressed: _clearReminderTime,
         ),
-        onTap: () => _selectTime(context), // Allow tapping to change time
+        onTap: () => _selectTime(context),
       );
     }
   }

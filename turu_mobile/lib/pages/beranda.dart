@@ -4,6 +4,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:turu_mobile/pages/listview_history.dart';
 import '../main.dart'; // Assuming TuruColors is defined here
+import '../services/auth.dart';
 
 class BerandaPage extends StatefulWidget {
   final bool? initialSleeping;
@@ -42,7 +43,7 @@ class _BerandaPageState extends State<BerandaPage> {
     super.initState();
     isSleeping = widget.initialSleeping ?? false;
     sleepStartTime = widget.initialStartTime;
-
+    var userData = AuthService().getCurrentUser();
     if (isSleeping && sleepStartTime != null) {
       _startSleepTimer();
     }
