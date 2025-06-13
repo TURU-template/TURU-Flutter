@@ -20,12 +20,19 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http.csrf(csrf -> csrf.disable())
             .authorizeHttpRequests(authorize -> authorize
-                // Endpoint publik yang tidak memerlukan autentikasi
                 .requestMatchers("/register", "/login", "/css/**").permitAll()
-                // API endpoints yang tidak memerlukan autentikasi
                 .requestMatchers("/api/login", "/api/register", "/api/ping").permitAll()
-                // API endpoints yang memerlukan autentikasi - untuk sementara kita izinkan akses publik
-                .requestMatchers(HttpMethod.PUT, "/api/user/**").permitAll()
+                
+                // Perbaikan untuk fitur foto profil dan user details
+                // Menggunakan {id} untuk path variable, yang lebih spesifik dan benar
+                .requestMatchers(HttpMethod.POST, "/api/user/{id}/profile-picture").permitAll() 
+                .requestMatchers(HttpMethod.GET, "/api/user/{id}").permitAll() 
+                .requestMatchers("/uploads/**").permitAll() 
+                
+                // Endpoint PUT untuk update profil dan password
+                .requestMatchers(HttpMethod.PUT, "/api/user/{id}").permitAll() 
+                .requestMatchers(HttpMethod.PUT, "/api/user/{id}/password").permitAll() 
+                
                 // Semua request lainnya perlu autentikasi
                 .anyRequest().authenticated())
             .formLogin(form -> form
@@ -41,4 +48,4 @@ public class SecurityConfig {
 
         return http.build();
     }
-} 
+}
