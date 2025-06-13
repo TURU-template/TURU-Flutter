@@ -325,7 +325,7 @@ class _BerandaPageState extends State<BerandaPage> {
 
     final displayedSleepScore = widget.sleepScore ?? 88;
     final displayedMascot = widget.mascot ?? '😴';
-    final displayedMascotName = widget.mascotName ?? 'Sleepy Sloth';
+    final displayedMascotName = widget.mascotName ?? 'Koala Pemalas';
     final displayedMascotDesc =
         widget.mascotDescription ?? 'Kamu tidur nyenyak semalam!';
     final displayedScores = widget.weeklyScores ?? fallbackWeeklyScores;

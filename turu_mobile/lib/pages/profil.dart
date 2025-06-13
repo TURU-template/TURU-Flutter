@@ -328,7 +328,7 @@ class _ProfilPageState extends State<ProfilPage> {
       _notificationService.showImmediateNotification(
         id: _reminderNotificationId,
         title: '😴 Waktunya Tidur!',
-        body: 'Sudah waktunya untuk istirahat. Selamat tidur!',
+        body: 'Sudah waktunya untuk istirahat. Yuk segera tidur!',
         payload: 'Sleep Reminder Triggered',
       );
 
