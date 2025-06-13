@@ -2,6 +2,11 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:bootstrap_icons/bootstrap_icons.dart';
+
+import 'package:intl/date_symbol_data_local.dart';
+import 'package:intl/intl.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+
 import 'pages/beranda.dart';
 import 'pages/radio.dart';
 import 'pages/profil.dart';
@@ -9,30 +14,26 @@ import 'pages/login.dart';
 import 'pages/detail_profil.dart';
 import 'pages/edit_profil.dart';
 import 'pages/edit_password.dart';
-import 'pages/sleep_history_page.dart';
+// Ini import untuk file HistorySleepPage Anda
+import 'pages/sleep_history_page.dart'; // Pastikan import ini menunjuk ke file yang benar
 import 'pages/edit_foto.dart';
 
-// Import the notification service
 import 'services/notification_service.dart';
 
 Future<void> main() async {
-  // Ensure Flutter bindings are initialized
   WidgetsFlutterBinding.ensureInitialized();
-
-  // Initialize the NotificationService
   await NotificationService().initialize();
-
+  await initializeDateFormatting('id', null);
+  Intl.defaultLocale = 'id';
   runApp(const TuruApp());
 }
 
 class TuruColors {
   static const Color primaryBackground = Color(0xFF04051F);
   static const Color navbarBackground = Color(0xFF08082F);
-
   static const Color textColor = Color(0xFFFFFFFF);
   static const Color textColor2 = Color(0xFF8E8E8E);
   static const Color textBlack = Color(0xFF000000);
-
   static const Color lilac = Color(0xFF2B194F);
   static const Color indigo = Color(0xFF514FC2);
   static const Color biscay = Color(0xFF18306D);
@@ -42,10 +43,7 @@ class TuruColors {
   static const Color pink = Color(0xFFDA5798);
   static const Color backdrop = Color(0xFF0C0E24);
   static const Color button = Color(0xFF007BFF);
-
-  static const Color grey = Color(
-    0xFFB0BEC5,
-  ); // atau warna abu-abu yang kamu suka
+  static const Color grey = Color(0xFFB0BEC5);
 }
 
 class TuruApp extends StatelessWidget {
@@ -53,7 +51,6 @@ class TuruApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Apply Open Sans to the entire app
     final openSansTextTheme = GoogleFonts.openSansTextTheme(
       ThemeData.dark().textTheme,
     );
@@ -66,17 +63,29 @@ class TuruApp extends StatelessWidget {
         splashFactory: NoSplash.splashFactory,
         highlightColor: Colors.transparent,
       ),
-      home: const LoginPage(), // Change initial route to LoginPage
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: const [
+        Locale('en', ''),
+        Locale('id', 'ID'),
+      ],
+      home: const LoginPage(),
       routes: {
-        '/login': (context) => const LoginPage(), // Added login route
+        '/login': (context) => const LoginPage(),
         '/main': (context) => const MainScreen(),
         '/profile_details': (context) => const ProfileDetailsPage(),
         '/edit_foto': (context) => const EditFotoPage(),
         '/edit_profil': (context) => const EditProfilPage(),
         '/edit_password': (context) => const EditPasswordPage(),
+        // --- PERBAIKAN DI SINI ---
         '/history': (context) {
-          return HistorySleepPage(scores: [88, 90, 75, 80, 92, 85, 70]);
+          // Ganti 'SleepHistoryPage' menjadi 'HistorySleepPage'
+          return const HistorySleepPage(scores: [88, 90, 75, 80, 92, 85, 70]);
         },
+        // --- AKHIR PERBAIKAN ---
       },
     );
   }

@@ -1,4 +1,6 @@
 import 'dart:async';
+import 'dart:convert';
+import 'dart:io' show SocketException;
 import 'package:bootstrap_icons/bootstrap_icons.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -6,6 +8,8 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:turu_mobile/pages/listview_history.dart';
 import '../main.dart'; // Assuming TuruColors is defined here
 import '../services/auth.dart';
+import 'package:intl/intl.dart'; // Import for date formatting
+import 'package:http/http.dart' as http;
 
 class BerandaPage extends StatefulWidget {
   final bool? initialSleeping;
@@ -39,13 +43,20 @@ class _BerandaPageState extends State<BerandaPage> {
   Timer? sleepTimer;
   Duration sleepDuration = Duration.zero;
 
+  // --- START: Perubahan untuk data pengguna ---
+  Map<String, dynamic>? _loggedInUserData;
+  // --- END: Perubahan untuk data pengguna ---
+
   @override
   void initState() {
     super.initState();
     isSleeping = widget.initialSleeping ?? false;
     sleepStartTime = widget.initialStartTime;
-    // ignore: unused_local_variable
-    var userData = AuthService().getCurrentUser();
+
+    // --- START: Panggil fungsi untuk memuat data pengguna ---
+    _loadUserData();
+    // --- END: Panggil fungsi untuk memuat data pengguna ---
+
     if (isSleeping && sleepStartTime != null) {
       _startSleepTimer();
     }
@@ -57,8 +68,22 @@ class _BerandaPageState extends State<BerandaPage> {
     super.dispose();
   }
 
+  // --- START: Fungsi untuk memuat data pengguna ---
+  void _loadUserData() {
+    setState(() {
+      _loggedInUserData = AuthService().getCurrentUser();
+    });
+    // Opsional: Logging untuk debugging
+    if (_loggedInUserData != null) {
+      print('Data pengguna dimuat di BerandaPage: ${_loggedInUserData!['username']}');
+    } else {
+      print('Pengguna belum login atau data tidak tersedia di BerandaPage.');
+    }
+  }
+  // --- END: Fungsi untuk memuat data pengguna ---
+
   void _startSleepTimer() {
-    sleepTimer?.cancel(); // make sure no previous timer
+    sleepTimer?.cancel();
     sleepTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
       setState(() {
         if (sleepStartTime != null) {
@@ -74,6 +99,10 @@ class _BerandaPageState extends State<BerandaPage> {
         // Kalau sedang tidur, tekan -> bangun
         isSleeping = false;
         sleepTimer?.cancel();
+        // TODO: PENTING! Kirim data tidur otomatis ke API di sini!
+        // Anda mungkin ingin menambahkan logika untuk memanggil _saveSleepDataToApi()
+        // dengan sleepStartTime dan DateTime.now() (sebagai waktu bangun)
+        // setelah pengguna berhenti tidur.
       } else {
         // Kalau tidak tidur, tekan -> mulai tidur
         isSleeping = true;
@@ -90,7 +119,7 @@ class _BerandaPageState extends State<BerandaPage> {
     return "${hours}j ${minutes}m";
   }
 
-  // This method is from beranda_OLD.dart
+  // ... (Metode _showSleepAnalysisDialog tetap sama untuk sekarang, akan diperbarui nanti) ...
   void _showSleepAnalysisDialog() {
     showDialog(
       context: context,
@@ -123,6 +152,7 @@ class _BerandaPageState extends State<BerandaPage> {
                     style: TextStyle(color: Colors.white70),
                     textAlign: TextAlign.center,
                   ),
+                  // TODO: Ganti dengan data dinamis
                   const Text(
                     "7,5 Jam",
                     style: TextStyle(
@@ -133,6 +163,7 @@ class _BerandaPageState extends State<BerandaPage> {
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 16),
+                  // TODO: Ganti dengan data dinamis dari widget.mascotName, widget.mascotDescription
                   const Text(
                     "Berdasarkan biodata Anda, tidur Anda sudah cukup baik, dapat dilambangkan dengan Singa Prima 🦁",
                     style: TextStyle(color: Colors.white70),
@@ -148,6 +179,7 @@ class _BerandaPageState extends State<BerandaPage> {
                     ),
                   ),
                   const SizedBox(height: 8),
+                  // TODO: Ganti dengan saran dinamis
                   const Text(
                     "Anda memerlukan tidur 30 menit lebih awal dari tidur kebiasaan Anda, atau bangun lebih akhir 30 menit dari kebiasaan bangun anda.",
                     style: TextStyle(color: Colors.white70),
@@ -177,12 +209,86 @@ class _BerandaPageState extends State<BerandaPage> {
     );
   }
 
-  // This method is from the newer beranda.dart
+  // --- START: Perubahan untuk Tambah Data Tidur Manual dan API ---
+  // Fungsi baru untuk mengirim data tidur ke API
+  Future<void> _saveSleepDataToApi({
+    required DateTime startTime,
+    required DateTime endTime,
+  }) async {
+    final authService = AuthService(); // Dapatkan instance AuthService
+    final baseUrl = AuthService.getBaseUrl(); // Dapatkan base URL
+    final url = Uri.parse('$baseUrl/api/sleep-records/manual'); // Ganti dengan endpoint API Anda
+
+    // Dapatkan ID pengguna dari data yang sudah login
+    final userId = authService.getCurrentUser()?['id'];
+    if (userId == null) {
+      print("Error: User ID not found. Cannot save sleep data.");
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Error: ID pengguna tidak ditemukan.')),
+      );
+      return;
+    }
+
+    try {
+      final response = await http.post(
+        url,
+        headers: {
+          'Content-Type': 'application/json; charset=UTF-8',
+          // Jika API Anda memerlukan otentikasi (misalnya, token JWT), tambahkan di sini:
+          // 'Authorization': 'Bearer ${authService.getAuthToken()}', // Contoh jika ada token
+        },
+        body: jsonEncode({
+          'userId': userId, // Sesuaikan dengan nama field di backend Anda
+          'startTime': startTime.toIso8601String(), // Format ISO 8601 adalah yang terbaik
+          'endTime': endTime.toIso8601String(),
+          // 'duration': endTime.difference(startTime).inMinutes, // Opsional: kirim juga durasi dalam menit
+        }),
+      ).timeout(const Duration(seconds: 10));
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        print('Sleep data saved successfully: ${response.body}');
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Data tidur berhasil disimpan!')),
+        );
+        // TODO: Refresh data di halaman Beranda atau daftar riwayat jika perlu
+      } else {
+        final errorBody = jsonDecode(response.body);
+        final errorMessage = errorBody['message'] ?? errorBody['error'] ?? 'Gagal menyimpan data tidur (${response.statusCode})';
+        print('Failed to save sleep data: $errorMessage');
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Gagal menyimpan data tidur: $errorMessage')),
+        );
+      }
+    } on SocketException {
+      print('Network error saving sleep data.');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Gagal terhubung ke server. Periksa koneksi internet Anda.')),
+      );
+    } on TimeoutException {
+      print('Timeout saving sleep data.');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Permintaan menyimpan data tidur melebihi batas waktu.')),
+      );
+    } catch (e) {
+      print('Unexpected error saving sleep data: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Terjadi kesalahan saat menyimpan data tidur: $e')),
+      );
+    }
+  }
+
+
+  // Metode _showTambahDataTidurDialog yang diperbarui
   Future<void> _showTambahDataTidurDialog() async {
     DateTime? waktuMulai;
     DateTime? waktuBangun;
     final mulaiController = TextEditingController();
     final bangunController = TextEditingController();
+
+    // Import untuk DateFormat jika diperlukan untuk controller.text
+    // Pastikan import 'package:intl/intl.dart'; di atas
+    final DateFormat formatter = DateFormat('dd/MM/yyyy HH:mm');
+
 
     await showDialog(
       context: context,
@@ -217,14 +323,51 @@ class _BerandaPageState extends State<BerandaPage> {
                     onTap: () async {
                       final pickedDate = await showDatePicker(
                         context: context,
-                        initialDate: DateTime.now(),
+                        initialDate: waktuMulai ?? DateTime.now(), // Gunakan waktuMulai jika sudah ada
                         firstDate: DateTime(2020),
-                        lastDate: DateTime(2100),
+                        lastDate: DateTime.now().add(const Duration(days: 1)), // Batasi hingga besok
+                        builder: (context, child) { // Kustomisasi tema date picker
+                          return Theme(
+                            data: ThemeData.dark().copyWith(
+                              colorScheme: const ColorScheme.dark(
+                                primary: TuruColors.indigo,
+                                onPrimary: Colors.white,
+                                onSurface: Colors.white,
+                              ),
+                              textButtonTheme: TextButtonThemeData(
+                                style: TextButton.styleFrom(
+                                  foregroundColor: TuruColors.indigo,
+                                ),
+                              ),
+                            ),
+                            child: child!,
+                          );
+                        },
                       );
                       if (pickedDate != null) {
                         final pickedTime = await showTimePicker(
                           context: context,
-                          initialTime: TimeOfDay.now(),
+                          initialTime: waktuMulai != null ? TimeOfDay.fromDateTime(waktuMulai!) : TimeOfDay.now(),
+                          builder: (context, child) { // Kustomisasi tema time picker
+                            return MediaQuery(
+                              data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: true),
+                              child: Theme(
+                                data: ThemeData.dark().copyWith(
+                                  colorScheme: const ColorScheme.dark(
+                                    primary: TuruColors.indigo,
+                                    onPrimary: Colors.white,
+                                    onSurface: Colors.white,
+                                  ),
+                                  textButtonTheme: TextButtonThemeData(
+                                    style: TextButton.styleFrom(
+                                      foregroundColor: TuruColors.indigo,
+                                    ),
+                                  ),
+                                ),
+                                child: child!,
+                              ),
+                            );
+                          },
                         );
                         if (pickedTime != null) {
                           final selectedDateTime = DateTime(
@@ -236,12 +379,7 @@ class _BerandaPageState extends State<BerandaPage> {
                           );
                           setState(() {
                             waktuMulai = selectedDateTime;
-                            mulaiController.text =
-                                "${selectedDateTime.day.toString().padLeft(2, '0')}/"
-                                "${selectedDateTime.month.toString().padLeft(2, '0')}/"
-                                "${selectedDateTime.year} "
-                                "${pickedTime.hour.toString().padLeft(2, '0')}:"
-                                "${pickedTime.minute.toString().padLeft(2, '0')}";
+                            mulaiController.text = formatter.format(selectedDateTime);
                           });
                         }
                       }
@@ -264,14 +402,51 @@ class _BerandaPageState extends State<BerandaPage> {
                     onTap: () async {
                       final pickedDate = await showDatePicker(
                         context: context,
-                        initialDate: DateTime.now(),
+                        initialDate: waktuBangun ?? DateTime.now(),
                         firstDate: DateTime(2020),
-                        lastDate: DateTime(2100),
+                        lastDate: DateTime.now().add(const Duration(days: 1)),
+                        builder: (context, child) { // Kustomisasi tema date picker
+                          return Theme(
+                            data: ThemeData.dark().copyWith(
+                              colorScheme: const ColorScheme.dark(
+                                primary: TuruColors.indigo,
+                                onPrimary: Colors.white,
+                                onSurface: Colors.white,
+                              ),
+                              textButtonTheme: TextButtonThemeData(
+                                style: TextButton.styleFrom(
+                                  foregroundColor: TuruColors.indigo,
+                                ),
+                              ),
+                            ),
+                            child: child!,
+                          );
+                        },
                       );
                       if (pickedDate != null) {
                         final pickedTime = await showTimePicker(
                           context: context,
-                          initialTime: TimeOfDay.now(),
+                          initialTime: waktuBangun != null ? TimeOfDay.fromDateTime(waktuBangun!) : TimeOfDay.now(),
+                          builder: (context, child) { // Kustomisasi tema time picker
+                            return MediaQuery(
+                              data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: true),
+                              child: Theme(
+                                data: ThemeData.dark().copyWith(
+                                  colorScheme: const ColorScheme.dark(
+                                    primary: TuruColors.indigo,
+                                    onPrimary: Colors.white,
+                                    onSurface: Colors.white,
+                                  ),
+                                  textButtonTheme: TextButtonThemeData(
+                                    style: TextButton.styleFrom(
+                                      foregroundColor: TuruColors.indigo,
+                                    ),
+                                  ),
+                                ),
+                                child: child!,
+                              ),
+                            );
+                          },
                         );
                         if (pickedTime != null) {
                           final selectedDateTime = DateTime(
@@ -283,12 +458,7 @@ class _BerandaPageState extends State<BerandaPage> {
                           );
                           setState(() {
                             waktuBangun = selectedDateTime;
-                            bangunController.text =
-                                "${selectedDateTime.day.toString().padLeft(2, '0')}/"
-                                "${selectedDateTime.month.toString().padLeft(2, '0')}/"
-                                "${selectedDateTime.year} "
-                                "${pickedTime.hour.toString().padLeft(2, '0')}:"
-                                "${pickedTime.minute.toString().padLeft(2, '0')}";
+                            bangunController.text = formatter.format(selectedDateTime);
                           });
                         }
                       }
@@ -306,22 +476,48 @@ class _BerandaPageState extends State<BerandaPage> {
             ElevatedButton(
               style: ElevatedButton.styleFrom(backgroundColor: TuruColors.pink),
               onPressed: () {
-                // TODO: Simpan data ke database atau state management
-                Navigator.pop(context);
+                // Validasi input
+                if (waktuMulai == null || waktuBangun == null) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Harap lengkapi waktu mulai dan waktu bangun.')),
+                  );
+                  return;
+                }
+                if (waktuBangun!.isBefore(waktuMulai!)) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Waktu bangun tidak boleh sebelum waktu mulai tidur.')),
+                  );
+                  return;
+                }
+
+                // Panggil fungsi untuk menyimpan data ke API
+                _saveSleepDataToApi(
+                  startTime: waktuMulai!,
+                  endTime: waktuBangun!,
+                );
+
+                Navigator.pop(context); // Tutup dialog setelah mencoba menyimpan
               },
-              child: const Text('Simpan'),
+              child: const Text('Simpan', style: TextStyle(color: Colors.white)), // Tambahkan warna
             ),
           ],
         );
       },
     );
   }
+  // --- END: Perubahan untuk Tambah Data Tidur Manual dan API ---
 
   @override
   Widget build(BuildContext context) {
     final now = DateTime.now();
     final fallbackWeeklyScores = [89, 76, 0, 65, 0, 95, 88];
     final fallbackDayLabels = ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'];
+
+    // --- START: Gunakan data pengguna yang sudah dimuat ---
+    final String username = _loggedInUserData?['username'] ?? 'Pengguna';
+    // Anda bisa gunakan username ini di bagian UI yang relevan, contoh:
+    // Text('Selamat datang, $username!');
+    // --- END: Gunakan data pengguna yang sudah dimuat ---
 
     final displayedSleepScore = widget.sleepScore ?? 88;
     final displayedMascot = widget.mascot ?? '😴';
@@ -369,16 +565,16 @@ class _BerandaPageState extends State<BerandaPage> {
                       ),
                     ),
                     const SizedBox(height: 12),
-                    const Text(
-                      "Tombol Tidur",
-                      style: TextStyle(
+                    Text(
+                      "Halo, $username!", // Contoh penggunaan data pengguna
+                      style: const TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
                     if (sleepStartTime != null)
                       Text(
-                        "Mulai: ${sleepStartTime!.hour}:${sleepStartTime!.minute.toString().padLeft(2, '0')}",
+                        "Mulai: ${DateFormat('HH:mm').format(sleepStartTime!)}", // Format waktu mulai
                         style: const TextStyle(color: TuruColors.textColor2),
                       ),
                     const SizedBox(height: 12),
@@ -401,9 +597,8 @@ class _BerandaPageState extends State<BerandaPage> {
                 children: [
                   Text(
                     sleepStartTime != null
-                        ? "Mulai: ${sleepStartTime!.hour}:${sleepStartTime!.minute.toString().padLeft(2, '0')}:${sleepStartTime!.second.toString().padLeft(2, '0')}"
-                        : "Mulai: 22:10",
-                    // Mulai -
+                        ? "Mulai: ${DateFormat('HH:mm').format(sleepStartTime!)}"
+                        : "Mulai: 22:10", // TODO: Ganti ini dengan data dari API/fallback yang lebih cerdas
                     style: const TextStyle(color: TuruColors.textColor2),
                   ),
                   const SizedBox(width: 3),
@@ -416,8 +611,8 @@ class _BerandaPageState extends State<BerandaPage> {
                     isSleeping
                         ? "Selesai: -"
                         : sleepStartTime != null
-                        ? "Selesai: ${now.hour}:${now.minute.toString().padLeft(2, '0')}:${now.second.toString().padLeft(2, '0')}"
-                        : "Selesai: 06:22",
+                            ? "Selesai: ${DateFormat('HH:mm').format(now)}"
+                            : "Selesai: 06:22", // TODO: Ganti ini dengan data dari API/fallback yang lebih cerdas
                     style: const TextStyle(color: TuruColors.textColor2),
                   ),
                 ],
@@ -426,7 +621,7 @@ class _BerandaPageState extends State<BerandaPage> {
               Text(
                 sleepStartTime != null
                     ? _formatDuration(sleepDuration)
-                    : "8 j 12 m",
+                    : "8 j 12 m", // TODO: Ganti ini dengan data dari API/fallback yang lebih cerdas
                 style: const TextStyle(
                   fontSize: 32,
                   fontWeight: FontWeight.w500,
@@ -490,9 +685,9 @@ class _BerandaPageState extends State<BerandaPage> {
 
               const _SectionTitle(title: "Statistik Tidur Mingguan"),
               const SizedBox(height: 8),
-              const Text(
-                "07 June 2025 - Hari Ini",
-                style: TextStyle(color: TuruColors.textColor2),
+              Text(
+                "07 Juni 2025 - ${DateFormat('dd MMMM yyyy', 'id_ID').format(now)}", // Tanggal dinamis
+                style: const TextStyle(color: TuruColors.textColor2),
               ),
               const SizedBox(height: 16),
               AspectRatio(
@@ -567,7 +762,6 @@ class _BerandaPageState extends State<BerandaPage> {
               ),
               const SizedBox(height: 24),
 
-              // Modified button to hug content
               ElevatedButton(
                 onPressed: () {
                   Navigator.push(
@@ -599,7 +793,7 @@ class _BerandaPageState extends State<BerandaPage> {
           ),
         ),
 
-        // Floating Action Button from the newer beranda.dart
+        // Floating Action Button
         Positioned(
           bottom: 80,
           right: 20,

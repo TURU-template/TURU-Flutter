@@ -33,7 +33,7 @@ dependencies:
   flutter_svg: ^2.0.7
   audioplayers: ^6.4.0
   fl_chart: ^0.71.0
-  intl: ^0.18.0  # Untuk format tanggal dan waktu
+  intl: ^0.19.0  # Untuk format tanggal dan waktu
   http: ^1.0.0  # Untuk melakukan request HTTP
   image_picker: ^1.0.4
   shared_preferences: ^2.5.3
@@ -42,6 +42,8 @@ dependencies:
   timezone: ^0.9.3 # Added for timezone 
   path_provider: ^2.1.2
   path: ^1.9.0
+  flutter_localizations:
+    sdk: flutter
 
 
   flutter:
