@@ -5,13 +5,35 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
 import org.springframework.core.env.Environment;
+import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
+import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
+import java.io.IOException; // Tambahkan import ini
+import java.nio.file.Files; // Tambahkan import ini
+import java.nio.file.Paths; // Tambahkan import ini
 
 @SpringBootApplication
-public class TuruApiApplication {
+public class TuruApiApplication implements WebMvcConfigurer { 
+    
+    public TuruApiApplication() {
+        try {
+            Files.createDirectories(Paths.get("./uploads/"));
+        } catch (IOException e) {
+            System.err.println("Failed to create upload directory: " + e.getMessage());
+            // Kamu mungkin ingin menangani error ini lebih lanjut
+        }
+    }
 
     public static void main(String[] args) {
         SpringApplication.run(TuruApiApplication.class, args);
     }
+    
+    
+    @Override
+    public void addResourceHandlers(ResourceHandlerRegistry registry) {
+        registry.addResourceHandler("/uploads/**")
+                .addResourceLocations("file:./uploads/");
+    }
+    
     
     @Bean
     public CommandLineRunner logDatabaseInfo(Environment env) {
@@ -21,19 +43,16 @@ public class TuruApiApplication {
             System.out.println("Database Port: " + getValueOrDefault(env, "DB_PORT", "3306"));
             System.out.println("Database Name: " + getValueOrDefault(env, "DB_NAME", "turu_db"));
             System.out.println("Database User: " + getValueOrDefault(env, "DB_USER", "root"));
-            // Don't log the password
             System.out.println("================================");
         };
     }
     
     private String getValueOrDefault(Environment env, String key, String defaultValue) {
-        // Check system environment variables first
         String value = System.getenv(key);
         if (value != null && !value.isEmpty()) {
             return value;
         }
         
-        // Then check Spring environment (application.properties)
         value = env.getProperty(key);
         if (value != null && !value.isEmpty()) {
             return value;
@@ -41,4 +60,4 @@ public class TuruApiApplication {
         
         return defaultValue;
     }
-} 
+}
