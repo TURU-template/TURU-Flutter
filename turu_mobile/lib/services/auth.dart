@@ -6,7 +6,7 @@ import 'package:http/http.dart' as http;
 
 class AuthService {
   static String get _baseUrl {
-    const productionUrl = 'http://10.0.2.2:8080';
+    const productionUrl = 'http://192.168.18.36:8080';
 
     if (kIsWeb) {
       print("Web environment detected, using $productionUrl");

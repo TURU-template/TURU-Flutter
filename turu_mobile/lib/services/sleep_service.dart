@@ -7,7 +7,7 @@ import 'package:http/http.dart' as http;
 class SleepService {
   // Ganti IP address sesuai dengan IP lokal mesin Anda.
   // Jika menggunakan emulator Android, 10.0.2.2 biasanya merujuk ke localhost mesin host.
-  final String _baseUrl = "http://10.0.2.2:8080/api";
+  final String _baseUrl = "http://192.168.18.36/api";
 
   Future<List<dynamic>> getSleepHistory(int userId) async {
     try {
