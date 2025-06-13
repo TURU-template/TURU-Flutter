@@ -69,7 +69,7 @@ class _LoginPageState extends State<LoginPage> {
 
       // Jika login berhasil (tidak melempar exception)
       // Simpan status login
-      await _authService.setLoggedIn(loginResult); // Tandai user sudah login
+      
 
       // Navigasi ke halaman utama jika masih dalam context widget
       if (mounted) {
