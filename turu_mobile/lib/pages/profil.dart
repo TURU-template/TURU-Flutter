@@ -1,15 +1,12 @@
-import 'dart:async'; // Import async for Timer
-import 'dart:io';
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:bootstrap_icons/bootstrap_icons.dart';
-import '../../main.dart'; // Keep for TuruColors
-import 'package:image_picker/image_picker.dart';
+import '../../main.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:permission_handler/permission_handler.dart';
-import '../services/notification_service.dart'; // Import NotificationService
-import 'package:timezone/timezone.dart'
-    as tz; // Import timezone for calculations
-import '../services/auth.dart'; // Import AuthService for logout
+import '../services/notification_service.dart';
+import 'package:timezone/timezone.dart' as tz;
+import '../services/auth.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 
 class ProfilPage extends StatefulWidget {
   const ProfilPage({Key? key}) : super(key: key);
@@ -19,65 +16,36 @@ class ProfilPage extends StatefulWidget {
 }
 
 class _ProfilPageState extends State<ProfilPage> {
-  File? _profileImage;
   final String _reminderPrefsKeyHour = 'sleep_reminder_hour';
   final String _reminderPrefsKeyMinute = 'sleep_reminder_minute';
-  final int _reminderNotificationId =
-      0; // Unique ID for the reminder notification
+  final int _reminderNotificationId = 0;
 
   TimeOfDay? _reminderTime;
   Timer? _countdownTimer;
   String _countdownText = '';
   final NotificationService _notificationService = NotificationService();
 
-  // --- START PERBAIKAN ---
-  // Deklarasikan userData sebagai properti state agar dapat diakses di seluruh kelas
-  Map<String, dynamic>? _loggedInUserData; // Gunakan _ untuk konvensi private
-  // --- END PERBAIKAN ---
+  Map<String, dynamic>? _loggedInUserData;
+  DateTime _lastProfileDataLoadTime = DateTime.now();
 
   @override
   void initState() {
     super.initState();
-    _loadProfileImage();
-    _loadReminderTime(); // Load reminder time on init
-    // --- START PERBAIKAN ---
-    // Panggil _loadUserData untuk mendapatkan data pengguna
+    _loadReminderTime();
     _loadUserData();
-    // --- END PERBAIKAN ---
   }
 
-  // --- START PERBAIKAN ---
-  // Fungsi baru untuk memuat data pengguna dari AuthService
   void _loadUserData() {
     setState(() {
       _loggedInUserData = AuthService().getCurrentUser();
+      _lastProfileDataLoadTime = DateTime.now();
     });
-    // Opsional: Lakukan logging untuk memastikan data terbaca
-    if (_loggedInUserData != null) {
-      print('Data pengguna dimuat di ProfilPage: ${_loggedInUserData!['username']}');
-      _loggedInUserData!.forEach((key, value) { // Iterasi dan cetak setiap kunci-nilai
-      print('$key: $value (${value.runtimeType})');
-    });
-    } else {
-      print('Pengguna belum login atau data tidak tersedia saat ProfilPage dimuat.');
-    }
   }
-  // --- END PERBAIKAN ---
 
   @override
   void dispose() {
-    _countdownTimer?.cancel(); // Cancel timer when widget is disposed
+    _countdownTimer?.cancel();
     super.dispose();
-  }
-
-  Future<void> _loadProfileImage() async {
-    final prefs = await SharedPreferences.getInstance();
-    final path = prefs.getString('profile_image_path');
-    if (path != null) {
-      setState(() {
-        _profileImage = File(path);
-      });
-    }
   }
 
   void _showConfirmationDialog({
@@ -88,119 +56,59 @@ class _ProfilPageState extends State<ProfilPage> {
   }) {
     showDialog(
       context: context,
-      builder:
-          (_) => AlertDialog(
-            backgroundColor: TuruColors.darkblue,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8),
+      builder: (_) => AlertDialog(
+        backgroundColor: TuruColors.darkblue,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8),
+        ),
+        title: Text(title, style: const TextStyle(color: Colors.white)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              description,
+              style: const TextStyle(color: Colors.white70),
             ),
-            title: Text(title, style: const TextStyle(color: Colors.white)),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
+            const SizedBox(height: 64),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
               children: [
-                Text(
-                  description,
-                  style: const TextStyle(color: Colors.white70),
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  style: TextButton.styleFrom(
+                    foregroundColor: Colors.white,
+                    backgroundColor: Colors.grey[700],
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  child: const Text("Batalkan"),
                 ),
-                const SizedBox(height: 64),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(context),
-                      style: TextButton.styleFrom(
-                        foregroundColor: Colors.white,
-                        backgroundColor: Colors.grey[700],
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ),
-                      child: const Text("Batalkan"),
+                const SizedBox(width: 12),
+                ElevatedButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                    onConfirm();
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: TuruColors.pink,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
                     ),
-                    const SizedBox(width: 12),
-                    ElevatedButton(
-                      onPressed: () {
-                        Navigator.pop(context);
-                        onConfirm();
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: TuruColors.pink,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ),
-                      child: const Text(
-                        "Konfirmasi",
-                        style: TextStyle(color: Colors.white),
-                      ),
-                    ),
-                  ],
+                  ),
+                  child: const Text(
+                    "Konfirmasi",
+                    style: TextStyle(color: Colors.white),
+                  ),
                 ),
               ],
             ),
-          ),
+          ],
+        ),
+      ),
     );
   }
-
-  // Fungsi untuk ambil gambar, sudah minta izin kamera
-  Future<void> _pickImage(ImageSource source) async {
-    if (source == ImageSource.camera) {
-      var status = await Permission.camera.status;
-      if (!status.isGranted) {
-        status = await Permission.camera.request();
-        if (!status.isGranted) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(const SnackBar(content: Text('Izin kamera ditolak')));
-          return;
-        }
-      }
-    }
-
-    final picker = ImagePicker();
-    final pickedFile = await picker.pickImage(source: source);
-
-    if (pickedFile != null) {
-      setState(() {
-        _profileImage = File(pickedFile.path);
-      });
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('profile_image_path', pickedFile.path);
-    }
-  }
-
-  void _showPickImageDialog() {
-    showModalBottomSheet(
-      context: context,
-      builder: (BuildContext context) {
-        return SafeArea(
-          child: Wrap(
-            children: <Widget>[
-              ListTile(
-                leading: const Icon(Icons.photo_camera),
-                title: const Text('Kamera'),
-                onTap: () {
-                  Navigator.of(context).pop();
-                  _pickImage(ImageSource.camera);
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.photo_library),
-                title: const Text('Galeri'),
-                onTap: () {
-                  Navigator.of(context).pop();
-                  _pickImage(ImageSource.gallery);
-                },
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  // --- Reminder Functions ---
 
   Future<void> _loadReminderTime() async {
     final prefs = await SharedPreferences.getInstance();
@@ -211,7 +119,7 @@ class _ProfilPageState extends State<ProfilPage> {
       setState(() {
         _reminderTime = TimeOfDay(hour: hour, minute: minute);
       });
-      _startCountdown(); // Start countdown if time is loaded
+      _startCountdown();
     }
   }
 
@@ -230,9 +138,9 @@ class _ProfilPageState extends State<ProfilPage> {
       _reminderTime = null;
       _countdownText = '';
     });
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text("Pengingat tidur dihapus.")));
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Pengingat tidur dihapus.")),
+    );
   }
 
   Future<void> _selectTime(BuildContext context) async {
@@ -356,7 +264,6 @@ class _ProfilPageState extends State<ProfilPage> {
     return "$hours:$minutes:$seconds";
   }
 
-  // Add logout helper: call AuthService.logout and clear stored prefs
   Future<void> _performLogout() async {
     await AuthService().logout();
     final prefs = await SharedPreferences.getInstance();
@@ -368,21 +275,23 @@ class _ProfilPageState extends State<ProfilPage> {
 
   @override
   Widget build(BuildContext context) {
-    // --- START PERBAIKAN ---
-    // Ambil data pengguna di sini sebelum digunakan di UI
-    // Pastikan _loggedInUserData tidak null sebelum mengakses propertinya
     final String username = _loggedInUserData?['username'] ?? 'Tamu';
     final String? rawGender = _loggedInUserData?['jk'] ?? '-';
     String gender;
     if (rawGender == 'L') {
-    gender = 'Laki-laki';
+      gender = 'Laki-laki';
     } else if (rawGender == 'P') {
-    gender = 'Perempuan';
+      gender = 'Perempuan';
     } else {
-    gender = '-';
+      gender = '-';
     }
     final String birthDate = _loggedInUserData?['tanggalLahir'] ?? '-';
-    // --- END PERBAIKAN ---
+    final String? profileImageUrl = _loggedInUserData?['profilePictureUrl'];
+
+    String fullProfileImageUrl = '';
+    if (profileImageUrl != null && profileImageUrl.isNotEmpty) {
+      fullProfileImageUrl = '${AuthService.getBaseUrl()}$profileImageUrl';
+    }
 
     return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(horizontal: 32),
@@ -390,27 +299,29 @@ class _ProfilPageState extends State<ProfilPage> {
         children: [
           const SizedBox(height: 64),
           GestureDetector(
-            onTap: () {
-              Navigator.pushNamed(context, '/profile_details');
+            onTap: () async {
+              await Navigator.pushNamed(context, '/profile_details');
+              await AuthService().refreshCurrentUser(); // Panggil ini
+              _loadUserData();
             },
-            child: _profileImage != null
-                ? CircleAvatar(
-                    radius: 50,
-                    backgroundImage: FileImage(_profileImage!),
-                  )
-                : const CircleAvatar(
-                    radius: 50,
-                    backgroundImage: AssetImage(
-                      'assets/images/LOGO_Turu.png',
-                    ),
-                  ),
+            child: CircleAvatar(
+              radius: 50,
+              backgroundColor: Colors.white24,
+              key: ValueKey(fullProfileImageUrl + _lastProfileDataLoadTime.toIso8601String()), // Update Key
+              backgroundImage: profileImageUrl != null && profileImageUrl.isNotEmpty
+                  ? NetworkImage(fullProfileImageUrl) as ImageProvider<Object>
+                  : const AssetImage('assets/images/LOGO_Turu.png') as ImageProvider<Object>,
+              child: (profileImageUrl == null || profileImageUrl.isEmpty)
+                  ? const Icon(Icons.person, color: Colors.white38, size: 50)
+                  : null,
+            ),
           ),
           const SizedBox(height: 16),
-          Center( // Hapus const di sini karena ada nilai variabel
+          Center(
             child: Column(
               children: [
                 Text(
-                  username, // Gunakan variabel username yang sudah diperiksa null
+                  username,
                   style: const TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.bold,
@@ -419,7 +330,7 @@ class _ProfilPageState extends State<ProfilPage> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  '$gender | $birthDate', // Gunakan variabel gender dan birthDate
+                  '$gender | $birthDate',
                   style: const TextStyle(color: Colors.white70),
                 ),
               ],
@@ -446,8 +357,7 @@ class _ProfilPageState extends State<ProfilPage> {
             onTap: () => _showConfirmationDialog(
               context: context,
               title: "Yakin Hapus Data Tidur?",
-              description:
-                  "Data rekaman tidurmu akan dihapus secara permanen. Tindakan ini tidak bisa dibatalkan.",
+              description: "Data rekaman tidurmu akan dihapus secara permanen. Tindakan ini tidak bisa dibatalkan.",
               onConfirm: () {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(content: Text("Data tidur dihapus.")),
@@ -462,8 +372,7 @@ class _ProfilPageState extends State<ProfilPage> {
             onTap: () => _showConfirmationDialog(
               context: context,
               title: "Yakin Log Out Akun?",
-              description:
-                  "Kamu akan keluar dari akun ini. Pastikan data kamu sudah tersimpan.",
+              description: "Kamu akan keluar dari akun ini. Pastikan data kamu sudah tersimpan.",
               onConfirm: _performLogout,
             ),
           ),
@@ -472,7 +381,6 @@ class _ProfilPageState extends State<ProfilPage> {
     );
   }
 
-  // Builds the UI section for the sleep reminder
   Widget _buildReminderSection() {
     if (_reminderTime == null) {
       return _settingItem(
