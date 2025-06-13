@@ -25,6 +25,11 @@ public class Pengguna {
     @DateTimeFormat(pattern = "yyyy-MM-dd")
     private LocalDate tanggalLahir;
 
+    
+    @Column(columnDefinition = "TEXT") // Menggunakan TEXT jika URL bisa panjang
+    private String profilePictureUrl;
+    
+
     public int getId() {
         return id;
     }
@@ -72,4 +77,14 @@ public class Pengguna {
     public void setState(boolean state) {
         this.state = state;
     }
-} 
+
+    
+    public String getProfilePictureUrl() {
+        return profilePictureUrl;
+    }
+
+    public void setProfilePictureUrl(String profilePictureUrl) {
+        this.profilePictureUrl = profilePictureUrl;
+    }
+    
+}
