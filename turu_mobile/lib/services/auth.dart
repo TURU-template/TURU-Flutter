@@ -6,23 +6,20 @@ import 'package:http/http.dart' as http;
 
 class AuthService {
   static String get _baseUrl {
-    const productionUrl = 'http://10.0.2.2:8080';
+    const webBackendUrl = 'http://localhost:8080';
+    const androidEmulatorBackendUrl = 'http://10.0.2.2:8080';
 
     if (kIsWeb) {
-      print("Web environment detected, using $productionUrl");
-      return productionUrl;
+      return webBackendUrl;
     } else {
       try {
         if (Platform.isAndroid) {
-          print("Android environment detected, using $productionUrl");
-          return productionUrl;
+          return androidEmulatorBackendUrl;
         } else {
-          print("Non-Android (iOS/Desktop) environment detected, using $productionUrl");
-          return productionUrl;
+          return webBackendUrl;
         }
       } catch (e) {
-        print("Error checking platform: $e. Using fallback $productionUrl");
-        return productionUrl;
+        return webBackendUrl;
       }
     }
   }
@@ -31,7 +28,6 @@ class AuthService {
 
   Future<Map<String, dynamic>> login(String username, String password) async {
     final url = Uri.parse('$_baseUrl/api/login');
-    print('Sending login request to $url');
 
     try {
       final response = await http.post(
@@ -40,11 +36,10 @@ class AuthService {
         body: jsonEncode({'username': username, 'password': password}),
       ).timeout(const Duration(seconds: 5));
 
-      print('Login response status: ${response.statusCode}');
       final body = jsonDecode(response.body);
-      
+
       if (response.statusCode == 200) {
-        print('Login success for $username');
+        setLoggedIn(body as Map<String, dynamic>);
         return body as Map<String, dynamic>;
       } else if (response.statusCode == 401 || response.statusCode == 403) {
         final errorMessage = body['error'] ?? 'Invalid username or password';
@@ -58,7 +53,6 @@ class AuthService {
     } on TimeoutException {
       throw Exception('Permintaan ke server melebihi batas waktu.');
     } catch (e) {
-      print('Unexpected login error: $e');
       throw Exception('Terjadi kesalahan saat login. Silakan coba lagi.');
     }
   }
@@ -70,7 +64,6 @@ class AuthService {
     required String? tanggalLahir,
   }) async {
     final url = Uri.parse('$_baseUrl/api/register');
-    print('Sending register request to $url');
 
     try {
       final response = await http.post(
@@ -84,21 +77,14 @@ class AuthService {
         }),
       ).timeout(const Duration(seconds: 10));
 
-      print('Register response status: ${response.statusCode}');
-      print('Register response body: ${response.body}');
-
       if (response.statusCode == 200) {
-        print('Register success for $username');
         return;
       } 
-      
-      // Handle kasus username sudah ada (409 Conflict)
+
       if (response.statusCode == 409) {
-        print('Username already exists: $username');
         throw Exception('Username sudah digunakan');
       }
-      
-      // Handle error lainnya
+
       String errorMessage;
       try {
         final body = jsonDecode(response.body) as Map<String, dynamic>;
@@ -106,29 +92,23 @@ class AuthService {
       } catch (e) {
         errorMessage = 'Gagal registrasi (${response.statusCode}): ${response.body}';
       }
-      
+
       throw Exception(errorMessage);
-    } on SocketException catch (e) {
-      print('Register SocketException: $e');
+    } on SocketException {
       throw Exception('Gagal menghubungkan ke server. Periksa koneksi internet Anda.');
-    } on TimeoutException catch (e) {
-      print('Register TimeoutException: $e');
+    } on TimeoutException {
       throw Exception('Permintaan ke server melebihi batas waktu.');
-    } on FormatException catch (e) {
-      print('Register FormatException: $e');
+    } on FormatException {
       throw Exception('Format respons server tidak valid.');
     } catch (e) {
-      print('Register general exception: $e');
       final msg = e.toString();
-      
-      // Prioritaskan error username sudah ada
+
       if (msg.contains('Username sudah digunakan') || 
           msg.contains('already exists') || 
           msg.contains('409')) {
         throw Exception('Username sudah digunakan');
       }
-      
-      // Re-throw exception
+
       rethrow;
     }
   }
@@ -166,13 +146,40 @@ class AuthService {
 
   Map<String, dynamic>? getCurrentUser() => _loggedInUserData;
 
+  void updateCurrentUser(Map<String, dynamic> newData) {
+    if (_loggedInUserData != null) {
+      _loggedInUserData!.addAll(newData);
+    }
+  }
+
+  // MULAI PENAMBAHAN
+  Future<void> refreshCurrentUser() async {
+    if (!_isUserLoggedIn || _loggedInUserData == null || _loggedInUserData!['id'] == null) {
+      return;
+    }
+
+    final userId = _loggedInUserData!['id'];
+    final url = Uri.parse('$_baseUrl/api/user/$userId');
+
+    try {
+      final response = await http.get(url).timeout(const Duration(seconds: 10));
+
+      if (response.statusCode == 200) {
+        final body = jsonDecode(response.body) as Map<String, dynamic>;
+        setLoggedIn(body);
+      }
+    } catch (e) {
+      // Handle error, tapi jangan sampai crash
+    }
+  }
+  // AKHIR PENAMBAHAN
+
   /// Update username pengguna (alias untuk editName)
   Future<void> updateProfile({
     required int userId,
     required String username,
   }) async {
     final url = Uri.parse('$_baseUrl/user/$userId');
-    print('Updating profile at $url');
 
     try {
       final response = await http.put(
@@ -181,17 +188,15 @@ class AuthService {
         body: jsonEncode({'username': username}),
       ).timeout(const Duration(seconds: 15));
 
-      print('updateProfile status: ${response.statusCode}');
-
       if (response.statusCode == 200) {
-        _loggedInUserData?['username'] = username;
+        updateCurrentUser({'username': username});
+        await refreshCurrentUser(); // Panggil ini setelah update
       } else {
         final errorBody = jsonDecode(response.body);
         final errorMessage = errorBody['error'] ?? response.body;
         throw Exception(errorMessage);
       }
     } catch (e) {
-      print('updateProfile error: $e');
       throw Exception('Gagal memperbarui profil. Periksa koneksi ke server.');
     }
   }
@@ -211,7 +216,6 @@ class AuthService {
     required String newPassword,
   }) async {
     final url = Uri.parse('$_baseUrl/user/$userId/password');
-    print('Changing password at $url');
 
     try {
       final response = await http.put(
@@ -223,8 +227,6 @@ class AuthService {
         }),
       ).timeout(const Duration(seconds: 15));
 
-      print('changePassword status: ${response.statusCode}');
-
       if (response.statusCode == 200) {
         return;
       } else {
@@ -233,7 +235,6 @@ class AuthService {
         throw Exception(errorMessage);
       }
     } catch (e) {
-      print('changePassword error: $e');
       throw Exception('Gagal mengubah password. Periksa koneksi ke server.');
     }
   }
