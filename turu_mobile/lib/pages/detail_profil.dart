@@ -1,6 +1,6 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import '../../main.dart';
+import '../services/auth.dart'; // Tambahkan import AuthService
 
 class ProfileDetailsPage extends StatefulWidget {
   const ProfileDetailsPage({super.key});
@@ -10,7 +10,21 @@ class ProfileDetailsPage extends StatefulWidget {
 }
 
 class _ProfileDetailsPageState extends State<ProfileDetailsPage> {
-  String? _imagePath;
+  // String? _imagePath; // Hapus ini, kita akan ambil dari AuthService
+  String? _profileImageUrl; // Gunakan ini untuk URL gambar profil
+
+  @override
+  void initState() {
+    super.initState();
+    _loadProfileData();
+  }
+
+  Future<void> _loadProfileData() async {
+    final user = AuthService().getCurrentUser();
+    setState(() {
+      _profileImageUrl = user?['profilePictureUrl'];
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -33,14 +47,14 @@ class _ProfileDetailsPageState extends State<ProfileDetailsPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Tambahkan preview foto profil di sini
             Center(
               child: CircleAvatar(
                 radius: 50,
                 backgroundColor: Colors.white24,
-                backgroundImage:
-                    _imagePath != null ? FileImage(File(_imagePath!)) : null,
-                child: _imagePath == null
+                backgroundImage: _profileImageUrl != null && _profileImageUrl!.isNotEmpty
+                    ? NetworkImage('${AuthService.getBaseUrl()}$_profileImageUrl') as ImageProvider<Object>
+                    : const AssetImage('assets/images/LOGO_Turu.png') as ImageProvider<Object>,
+                child: (_profileImageUrl == null || _profileImageUrl!.isEmpty)
                     ? const Icon(Icons.person, color: Colors.white38, size: 40)
                     : null,
               ),
@@ -51,28 +65,26 @@ class _ProfileDetailsPageState extends State<ProfileDetailsPage> {
               icon: Icons.photo_camera,
               label: "Edit Foto Profil",
               onTap: () async {
-                final result = await Navigator.pushNamed(context, '/edit_foto');
-                if (result != null && result is String) {
-                  setState(() {
-                    _imagePath = result;
-                  });
-                }
+                await Navigator.pushNamed(context, '/edit_foto');
+                // Setelah kembali dari EditFotoPage, refresh data profil di DetailProfilPage
+                _loadProfileData();
               },
             ),
             const Divider(color: Colors.white24),
             _menuItem(
               icon: Icons.edit,
               label: "Edit Nama User",
-              onTap: () {
-                Navigator.pushNamed(context, '/edit_profil');
+              onTap: () async {
+                await Navigator.pushNamed(context, '/edit_profil');
+                _loadProfileData(); // Refresh data setelah edit nama
               },
             ),
             const Divider(color: Colors.white24),
             _menuItem(
               icon: Icons.lock,
               label: "Ganti Password",
-              onTap: () {
-                Navigator.pushNamed(context, '/edit_password');
+              onTap: () async {
+                await Navigator.pushNamed(context, '/edit_password');
               },
             ),
           ],
