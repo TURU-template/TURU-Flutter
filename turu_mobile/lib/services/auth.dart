@@ -12,10 +12,10 @@ class AuthService {
 
   static String get _baseUrl {
     // URL produksi dari tim (192.168.18.36)
-    const productionUrl = 'http://10.0.2.2:8080';
+    const productionUrl = 'https://turu.azurewebsites.net';
     // URL untuk pengembangan lokal (localhost atau emulator Android)
-    const webLocalUrl = 'http://localhost:8080';
-    const androidEmulatorLocalUrl = 'http://10.0.2.2:8080';
+    const webLocalUrl = 'https://turu.azurewebsites.net';
+    const androidEmulatorLocalUrl = 'https://turu.azurewebsites.net';
 
     if (kIsWeb) {
       // Jika di web, gunakan localhost untuk pengembangan, atau productionUrl untuk deploy
