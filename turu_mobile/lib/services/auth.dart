@@ -82,7 +82,7 @@ class AuthService {
       final body = jsonDecode(response.body);
 
       if (response.statusCode == 200) {
-        _loggedInUserData = body['user'] as Map<String, dynamic>;
+        _loggedInUserData = body as Map<String, dynamic>;
         _isUserLoggedIn = true;
         await _saveCurrentUserToPrefs();
         print('Login success for $username. Data: $_loggedInUserData');
@@ -227,7 +227,7 @@ class AuthService {
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body) as Map<String, dynamic>;
         // Pastikan Anda memuat data pengguna dari body['user'] jika API Anda mengembalikan struktur tersebut
-        _loggedInUserData = body['user'] as Map<String, dynamic>;
+        _loggedInUserData = body as Map<String, dynamic>;
         await _saveCurrentUserToPrefs();
       }
     } catch (e) {
