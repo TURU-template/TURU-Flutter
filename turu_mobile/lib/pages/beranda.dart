@@ -1,17 +1,20 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:io' show SocketException;
+import 'dart:io' show SocketException; // Import SocketException
+import 'dart:math'; // Import for min function to limit print body length
 import 'package:bootstrap_icons/bootstrap_icons.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:fl_chart/fl_chart.dart';
-import 'package:turu_mobile/pages/listview_history.dart';
-import '../main.dart'; // Assuming TuruColors is defined here
-import '../services/auth.dart';
-import 'package:intl/intl.dart'; // Import for date formatting
-import 'package:http/http.dart' as http;
+import 'package:fl_chart/fl_chart.dart'; // Correct import for fl_chart
+import 'package:turu_mobile/pages/sleep_history_page.dart'; // Pastikan ini path yang benar
+import '../main.dart'; // Mengasumsikan TuruColors didefinisikan di sini
+import '../services/auth.dart'; // Import AuthService
+import 'package:intl/intl.dart'; // Import untuk format tanggal dan waktu
+import 'package:http/http.dart' as http; // Import untuk HTTP requests
 
 class BerandaPage extends StatefulWidget {
+  // Properti widget ini sekarang berfungsi sebagai fallback atau nilai awal
+  // Data utama akan di-fetch dari API
   final bool? initialSleeping;
   final DateTime? initialStartTime;
   final int? sleepScore;
@@ -38,28 +41,45 @@ class BerandaPage extends StatefulWidget {
 }
 
 class _BerandaPageState extends State<BerandaPage> {
-  bool isSleeping = false;
-  DateTime? sleepStartTime;
-  Timer? sleepTimer;
-  Duration sleepDuration = Duration.zero;
+  // Instance AuthService (singleton) untuk mengakses metodenya
+  final AuthService _authService = AuthService();
 
-  // --- START: Perubahan untuk data pengguna ---
-  Map<String, dynamic>? _loggedInUserData;
-  // --- END: Perubahan untuk data pengguna ---
+  // State untuk pelacakan tidur real-time (otomatis)
+  bool isSleeping = false;
+  DateTime? sleepStartTime; // Waktu mulai sesi aktif
+  Timer? sleepTimer;
+  Duration sleepDuration = Duration.zero; // Durasi sesi aktif
+
+  // State untuk data yang dimuat dari API
+  Map<String, dynamic>? _loggedInUserData; // Data pengguna yang sudah login
+
+  // Data Analisis Tidur
+  int _displayScore = 0;
+  String _displayMascot = '😴';
+  String _displayMascotName = 'Tertidur.. zZzZ';
+  String _displayMascotDescription = 'Klik tombol untuk memulai sesi tidur.';
+  String _displaySuggestion = 'Mulai lacak tidur Anda untuk mendapatkan analisis personal.';
+  String _averageSleepDurationFormatted = '0.0 Jam'; // Rata-rata durasi tidur
+
+  // Data Statistik Tidur Mingguan
+  List<int> _displayWeeklyScores = [];
+  List<String> _displayDayLabels = [];
+  int _displayTodayIndex = 0;
+  String _weeklyDateRange = 'Memuat...';
+
+  // Data Tidur Terakhir
+  String _lastSleepStartTimeFormatted = '-';
+  String _lastSleepEndTimeFormatted = '-';
+  String _lastSleepDurationFormatted = '0j 0m'; // Format "Xj Ym"
+
+  bool _isLoading = true; // State untuk menunjukkan apakah data dashboard sedang dimuat
+  bool _isButtonLoading = false; // State khusus untuk loading tombol tidur (toggle sleep)
 
   @override
   void initState() {
     super.initState();
-    isSleeping = widget.initialSleeping ?? false;
-    sleepStartTime = widget.initialStartTime;
-
-    // --- START: Panggil fungsi untuk memuat data pengguna ---
-    _loadUserData();
-    // --- END: Panggil fungsi untuk memuat data pengguna ---
-
-    if (isSleeping && sleepStartTime != null) {
-      _startSleepTimer();
-    }
+    // Panggil fungsi untuk memuat data pengguna, lalu lanjutkan dengan memuat data dashboard
+    _loadUserDataAndDashboard();
   }
 
   @override
@@ -68,227 +88,525 @@ class _BerandaPageState extends State<BerandaPage> {
     super.dispose();
   }
 
-  // --- START: Fungsi untuk memuat data pengguna ---
-  void _loadUserData() {
-    setState(() {
-      _loggedInUserData = AuthService().getCurrentUser();
-    });
-    // Opsional: Logging untuk debugging
-    if (_loggedInUserData != null) {
-      print('Data pengguna dimuat di BerandaPage: ${_loggedInUserData!['username']}');
-    } else {
-      print('Pengguna belum login atau data tidak tersedia di BerandaPage.');
+  // Helper function to log API responses
+  void _logResponse(String tag, Uri url, http.Response response) {
+    print('DEBUG_FLUTTER: [$tag] URL: $url');
+    print('DEBUG_FLUTTER: [$tag] Status: ${response.statusCode}');
+    // Print only the first 200 characters of the body to avoid flooding the console
+    print('DEBUG_FLUTTER: [$tag] Body: ${response.body.substring(0, min(response.body.length, 200))}');
+    // Check for redirect headers explicitly
+    if (response.statusCode >= 300 && response.statusCode < 400) {
+      print('DEBUG_FLUTTER: [$tag] REDIRECT DETECTED! Location: ${response.headers['location']}');
     }
   }
-  // --- END: Fungsi untuk memuat data pengguna ---
+
+  // Menggabungkan pemuatan data pengguna dan dashboard
+  Future<void> _loadUserDataAndDashboard() async {
+    if (!mounted) return;
+
+    print('DEBUG_FLUTTER: Starting _loadUserDataAndDashboard...');
+
+    // Aktifkan loading dashboard, tapi hanya jika tombol sedang tidak loading
+    if (!_isButtonLoading) {
+        setState(() {
+            _isLoading = true;
+        });
+    }
+
+    // Ambil data pengguna dari AuthService singleton (melalui instance _authService)
+    // getCurrentUser() di AuthService sudah memastikan memuat dari SharedPreferences jika perlu
+    _loggedInUserData = _authService.getCurrentUser();
+    print('DEBUG_FLUTTER: Logged-in User Data: $_loggedInUserData');
+
+
+    // Jika _loggedInUserData masih null (misal: belum login atau sesi kadaluwarsa)
+    if (_loggedInUserData == null || _loggedInUserData?['id'] == null) {
+      print('DEBUG_FLUTTER: Pengguna belum login atau data ID tidak tersedia. Mengarahkan ke Login.');
+      // Bersihkan sisa data jika ada
+      await _authService.logout();
+      if (mounted) {
+        // Gunakan Future.microtask untuk menunda navigasi sampai setelah build selesai
+        Future.microtask(() => Navigator.pushReplacementNamed(context, '/login'));
+        return; // Hentikan eksekusi lebih lanjut
+      }
+    }
+
+    // Jika ID pengguna tersedia, baru fetch data dashboard
+    await _fetchDashboardData();
+
+    // Selesai loading dashboard setelah semua data di-fetch (kecuali jika _isButtonLoading masih true)
+    if (mounted && !_isButtonLoading) {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+    print('DEBUG_FLUTTER: _loadUserDataAndDashboard finished.');
+  }
+
+  // Helper untuk mendapatkan header API tanpa token keamanan
+  Map<String, String> _getApiHeaders() {
+    return {
+      'Content-Type': 'application/json; charset=UTF-8',
+      // Tidak ada header Authorization untuk JWT/Token
+    };
+  }
+
+  // --- Fungsi Baru: Memuat Semua Data Dashboard dari API ---
+  Future<void> _fetchDashboardData() async {
+    final baseUrl = AuthService.getBaseUrl(); // baseUrl tetap static di AuthService
+    final userId = _loggedInUserData?['id']; // Dapatkan ID pengguna
+
+    if (userId == null) {
+      print("DEBUG_FLUTTER: Error: User ID is null. Cannot fetch dashboard data. (Already handled in _loadUserDataAndDashboard).");
+      return;
+    }
+
+    print('DEBUG_FLUTTER: Starting _fetchDashboardData for userId: $userId');
+
+    try {
+      // 1. Ambil Sesi Tidur Saat Ini (untuk status tombol tidur)
+      final sessionUrl = Uri.parse('$baseUrl/api/get-session-data-flutter/$userId');
+      final sessionResponse = await http.get(sessionUrl, headers: _getApiHeaders()).timeout(const Duration(seconds: 5));
+      _logResponse('Session API', sessionUrl, sessionResponse);
+
+      if (sessionResponse.statusCode == 200 && sessionResponse.body.isNotEmpty) {
+        final Map<String, dynamic> sessionData = jsonDecode(sessionResponse.body);
+        if (mounted) {
+          setState(() {
+            isSleeping = sessionData['state'] ?? false;
+            if (sessionData['startTime'] != null) {
+              sleepStartTime = DateTime.parse(sessionData['startTime']);
+              _startSleepTimer(); // Mulai timer jika sesi aktif
+            } else {
+              sleepStartTime = null;
+              sleepDuration = Duration.zero;
+            }
+          });
+        }
+      } else if (sessionResponse.statusCode == 204 || sessionResponse.body.isEmpty) {
+        print('DEBUG_FLUTTER: No active sleep session found (204 No Content/Empty Body).');
+        if (mounted) {
+          setState(() {
+            isSleeping = false;
+            sleepStartTime = null;
+            sleepDuration = Duration.zero;
+          });
+        }
+      } else {
+        // Tangani error tanpa asumsi 401/403 karena tidak ada autentikasi di backend ini
+        print('DEBUG_FLUTTER: Failed to get sleep session data: ${sessionResponse.statusCode}.');
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Gagal memuat sesi tidur: ${sessionResponse.statusCode}.')));
+      }
+
+      // 2. Ambil Data Tidur Terakhir (untuk bagian "Data Tidur")
+      final latestRecordUrl = Uri.parse('$baseUrl/api/sleep-records/latest/$userId');
+      final latestRecordResponse = await http.get(latestRecordUrl, headers: _getApiHeaders()).timeout(const Duration(seconds: 5));
+      _logResponse('Latest Record API', latestRecordUrl, latestRecordResponse);
+
+      if (latestRecordResponse.statusCode == 200 && latestRecordResponse.body.isNotEmpty) {
+        final Map<String, dynamic> latestData = jsonDecode(latestRecordResponse.body);
+        if (latestData['message'] != null && latestData['message'].contains('No sleep records')) {
+            print('DEBUG_FLUTTER: No latest sleep records for display.');
+            if (mounted) {
+              setState(() {
+                _lastSleepStartTimeFormatted = '-';
+                _lastSleepEndTimeFormatted = '-';
+                _lastSleepDurationFormatted = '0j 0m';
+              });
+            }
+        } else {
+          if (mounted) {
+            setState(() {
+              _lastSleepStartTimeFormatted = latestData['startTime'] != null
+                  ? DateFormat('HH:mm').format(DateTime.parse(latestData['startTime']))
+                  : '-';
+              _lastSleepEndTimeFormatted = latestData['endTime'] != null
+                  ? DateFormat('HH:mm').format(DateTime.parse(latestData['endTime']))
+                  : '-';
+              _lastSleepDurationFormatted = latestData['duration'] != null
+                  ? _formatDurationFromBackend(latestData['duration'])
+                  : '0j 0m';
+            });
+          }
+        }
+      } else {
+        print('DEBUG_FLUTTER: Failed to get latest sleep record: ${latestRecordResponse.statusCode}.');
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Gagal memuat data tidur terakhir: ${latestRecordResponse.statusCode}.')));
+      }
+
+      // 3. Ambil Analisis Tidur (untuk "Skor Tidur")
+      final analysisUrl = Uri.parse('$baseUrl/api/sleep-analysis/$userId');
+      final analysisResponse = await http.get(analysisUrl, headers: _getApiHeaders()).timeout(const Duration(seconds: 5));
+      _logResponse('Analysis API', analysisUrl, analysisResponse);
+
+      if (analysisResponse.statusCode == 200 && analysisResponse.body.isNotEmpty) {
+        final Map<String, dynamic> analysisData = jsonDecode(analysisResponse.body);
+        if (analysisData['message'] != null && analysisData['message'].contains('No sleep data')) {
+          print('DEBUG_FLUTTER: No sleep analysis data for display.');
+          if (mounted) {
+            setState(() {
+              _displayScore = 0;
+              _displayMascot = '❓';
+              _displayMascotName = 'Tidak Ada Data';
+              _displayMascotDescription = 'Belum ada cukup data tidur untuk analisis.';
+              _displaySuggestion = 'Mulai lacak tidur Anda untuk mendapatkan analisis personal.';
+              _averageSleepDurationFormatted = '0.0 Jam';
+            });
+          }
+        } else {
+          if (mounted) {
+            setState(() {
+              _displayScore = (analysisData['averageSleepScore'] as num?)?.toInt() ?? 0;
+              _displayMascot = analysisData['mascot'] ?? '😴';
+              _displayMascotName = analysisData['mascotName'] ?? 'Tidak Ada Data';
+              _displayMascotDescription = analysisData['mascotDescription'] ?? 'Mulai lacak tidur Anda untuk mendapatkan analisis personal.';
+              _displaySuggestion = analysisData['suggestion'] ?? 'Tidak ada saran spesifik saat ini.';
+              _averageSleepDurationFormatted = analysisData['averageSleepDurationFormatted'] ?? '0.0 Jam';
+            });
+          }
+        }
+      } else {
+        print('DEBUG_FLUTTER: Failed to get sleep analysis: ${analysisResponse.statusCode}.');
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Gagal memuat analisis tidur: ${analysisResponse.statusCode}.')));
+      }
+
+      // 4. Ambil Statistik Tidur Mingguan (untuk "Statistik Tidur Mingguan")
+      final statsUrl = Uri.parse('$baseUrl/api/sleep-stats/weekly/$userId');
+      final statsResponse = await http.get(statsUrl, headers: _getApiHeaders()).timeout(const Duration(seconds: 5));
+      _logResponse('Weekly Stats API', statsUrl, statsResponse);
+
+      if (statsResponse.statusCode == 200 && statsResponse.body.isNotEmpty) {
+        final Map<String, dynamic> statsData = jsonDecode(statsResponse.body);
+        if (mounted) {
+          setState(() {
+            _displayWeeklyScores = (statsData['weeklyScores'] as List?)?.cast<int>() ?? List.filled(7, 0);
+            _displayDayLabels = (statsData['dayLabels'] as List?)?.cast<String>() ?? ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'];
+            _displayTodayIndex = (statsData['todayIndex'] as num?)?.toInt() ?? DateTime.now().weekday % 7;
+            _weeklyDateRange = "${statsData['dateRangeStart']} - ${statsData['dateRangeEnd']}";
+          });
+        }
+      } else {
+        print('DEBUG_FLUTTER: Failed to get weekly stats: ${statsResponse.statusCode}.');
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Gagal memuat statistik mingguan: ${statsResponse.statusCode}.')));
+      }
+
+    } on SocketException catch (e) {
+      print('DEBUG_FLUTTER: Network error fetching dashboard data: SocketException - $e');
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Gagal terhubung ke server. Periksa koneksi internet Anda.')));
+    } on TimeoutException catch (e) {
+      print('DEBUG_FLUTTER: Timeout fetching dashboard data: TimeoutException - $e');
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Memuat data dashboard melebihi batas waktu.')));
+    } catch (e) {
+      print('DEBUG_FLUTTER: Unexpected error fetching dashboard data: $e');
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Kesalahan saat memuat data dashboard: $e')));
+    }
+    print('DEBUG_FLUTTER: _fetchDashboardData finished.');
+  }
+
+  // Helper untuk memformat durasi dari backend (misalnya "HH:MM:SS" dari LocalTime Java)
+  String _formatDurationFromBackend(String durationString) {
+    try {
+      final parts = durationString.split(':');
+      if (parts.length >= 2) {
+        final hours = int.tryParse(parts[0]) ?? 0;
+        final minutes = int.tryParse(parts[1]) ?? 0;
+        return "${hours}j ${minutes}m";
+      }
+    } catch (e) {
+      print("DEBUG_FLUTTER: Error parsing duration string: $e");
+    }
+    return "0j 0m"; // Fallback
+  }
 
   void _startSleepTimer() {
     sleepTimer?.cancel();
     sleepTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      setState(() {
-        if (sleepStartTime != null) {
-          sleepDuration = DateTime.now().difference(sleepStartTime!);
-        }
-      });
-    });
-  }
-
-  void _toggleSleep() {
-    setState(() {
-      if (isSleeping) {
-        // Kalau sedang tidur, tekan -> bangun
-        isSleeping = false;
-        sleepTimer?.cancel();
-        // TODO: PENTING! Kirim data tidur otomatis ke API di sini!
-        // Anda mungkin ingin menambahkan logika untuk memanggil _saveSleepDataToApi()
-        // dengan sleepStartTime dan DateTime.now() (sebagai waktu bangun)
-        // setelah pengguna berhenti tidur.
-      } else {
-        // Kalau tidak tidur, tekan -> mulai tidur
-        isSleeping = true;
-        sleepStartTime = DateTime.now();
-        sleepDuration = Duration.zero;
-        _startSleepTimer();
+      if (mounted) {
+        setState(() {
+          if (sleepStartTime != null) {
+            sleepDuration = DateTime.now().difference(sleepStartTime!);
+          }
+        });
       }
     });
   }
 
+  void _toggleSleep() async {
+    final baseUrl = AuthService.getBaseUrl(); // baseUrl tetap static di AuthService
+    final userId = _loggedInUserData?['id']; // Dapatkan ID pengguna
+
+    if (userId == null) {
+      print("DEBUG_FLUTTER: Error: User ID not available for toggle sleep. Cannot change sleep status.");
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Anda belum login. Gagal mengubah status tidur.')));
+      return;
+    }
+
+    if (mounted) {
+      setState(() {
+        _isButtonLoading = true; // Aktifkan loading khusus tombol
+      });
+    }
+
+    try {
+      if (isSleeping) {
+        // SEDANG TIDUR -> BANGUN (POST /api/sleep/end)
+        final endTime = DateTime.now();
+        final url = Uri.parse('$baseUrl/api/sleep/end');
+        final response = await http.post(
+          url,
+          headers: _getApiHeaders(), // Gunakan helper headers tanpa token
+          body: jsonEncode({
+            'userId': userId,
+            'endTime': endTime.toUtc().toIso8601String(), // Kirim dalam UTC
+          }),
+        ).timeout(const Duration(seconds: 10));
+
+        _logResponse('End Sleep API', url, response);
+
+        if (response.statusCode == 200) {
+          final responseData = jsonDecode(response.body);
+          final bool isDeleted = responseData['message']?.contains('too short') ?? false;
+          if (isDeleted) {
+            if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Sesi tidur terlalu singkat dan dihapus.')));
+          } else {
+            if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Data tidur berhasil disimpan!')));
+          }
+          if (mounted) {
+            setState(() {
+              isSleeping = false;
+              sleepTimer?.cancel();
+              sleepStartTime = null;
+              sleepDuration = Duration.zero;
+            });
+            _fetchDashboardData(); // Muat ulang semua data dashboard setelah sesi berakhir
+          }
+        } else { // Tangani error tanpa asumsi 401/403
+          final errorBody = jsonDecode(response.body);
+          final errorMessage = errorBody['error'] ?? 'Gagal mengakhiri sesi tidur (${response.statusCode})';
+          if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(errorMessage)));
+        }
+      } else {
+        // TIDAK TIDUR -> MULAI TIDUR (POST /api/sleep/start)
+        final startTime = DateTime.now();
+        final url = Uri.parse('$baseUrl/api/sleep/start');
+        final response = await http.post(
+          url,
+          headers: _getApiHeaders(), // Gunakan helper headers tanpa token
+          body: jsonEncode({
+            'userId': userId,
+            'startTime': startTime.toUtc().toIso8601String(), // Kirim dalam UTC
+          }),
+        ).timeout(const Duration(seconds: 10));
+
+        _logResponse('Start Sleep API', url, response);
+
+        if (response.statusCode == 200 || response.statusCode == 201) {
+          if (mounted) {
+            setState(() {
+              isSleeping = true;
+              sleepStartTime = startTime; // Gunakan waktu lokal saat ini untuk UI
+              sleepDuration = Duration.zero;
+              _startSleepTimer(); // Mulai timer
+            });
+            if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Sesi tidur dimulai!')));
+          }
+        } else { // Tangani error tanpa asumsi 401/403
+          final errorBody = jsonDecode(response.body);
+          final errorMessage = errorBody['error'] ?? 'Gagal memulai sesi tidur (${response.statusCode})';
+          if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(errorMessage)));
+        }
+      }
+    } on SocketException catch (e) {
+      print('DEBUG_FLUTTER: Network error during toggle sleep: SocketException - $e');
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Gagal terhubung ke server. Periksa koneksi internet Anda.')));
+    } on TimeoutException catch (e) {
+      print('DEBUG_FLUTTER: Timeout during toggle sleep: TimeoutException - $e');
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Permintaan melebihi batas waktu.')));
+    } catch (e) {
+      print('DEBUG_FLUTTER: Unexpected error during toggle sleep: $e');
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Terjadi kesalahan: $e')));
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isButtonLoading = false; // Nonaktifkan loading tombol
+          _isLoading = false; // Pastikan _isLoading juga mati jika hanya tombol yang berputar
+        });
+      }
+    }
+  }
   String _formatDuration(Duration duration) {
     final hours = duration.inHours;
     final minutes = duration.inMinutes.remainder(60);
     return "${hours}j ${minutes}m";
   }
 
-  // ... (Metode _showSleepAnalysisDialog tetap sama untuk sekarang, akan diperbarui nanti) ...
   void _showSleepAnalysisDialog() {
     showDialog(
       context: context,
-      builder:
-          (_) => AlertDialog(
-            backgroundColor: TuruColors.darkblue,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8),
-            ),
-            title: const Text(
-              "Analisis Tidur",
-              style: TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            content: SingleChildScrollView(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  const Icon(
-                    BootstrapIcons.moon_stars_fill,
-                    color: Colors.white,
-                    size: 64,
-                  ),
-                  const SizedBox(height: 16),
-                  const Text(
-                    "Rerata Durasi Tidur:",
-                    style: TextStyle(color: Colors.white70),
-                    textAlign: TextAlign.center,
-                  ),
-                  // TODO: Ganti dengan data dinamis
-                  const Text(
-                    "7,5 Jam",
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 18,
-                      color: Colors.white,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 16),
-                  // TODO: Ganti dengan data dinamis dari widget.mascotName, widget.mascotDescription
-                  const Text(
-                    "Berdasarkan biodata Anda, tidur Anda sudah cukup baik, dapat dilambangkan dengan Singa Prima 🦁",
-                    style: TextStyle(color: Colors.white70),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 32),
-                  const Text(
-                    "Saran",
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  // TODO: Ganti dengan saran dinamis
-                  const Text(
-                    "Anda memerlukan tidur 30 menit lebih awal dari tidur kebiasaan Anda, atau bangun lebih akhir 30 menit dari kebiasaan bangun anda.",
-                    style: TextStyle(color: Colors.white70),
-                  ),
-                  const SizedBox(height: 24),
-                  Center(
-                    child: TextButton(
-                      onPressed: () => Navigator.pop(context),
-                      style: TextButton.styleFrom(
-                        foregroundColor: Colors.white,
-                        backgroundColor: Colors.grey[700],
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 24,
-                          vertical: 12,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ),
-                      child: const Text("Tutup"),
-                    ),
-                  ),
-                ],
-              ),
-            ),
+      builder: (_) => AlertDialog(
+        backgroundColor: TuruColors.darkblue,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8),
+        ),
+        title: const Text(
+          "Analisis Tidur",
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
           ),
+          textAlign: TextAlign.center,
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                _displayMascot,
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontSize: 64),
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                "Rerata Durasi Tidur:",
+                style: TextStyle(color: Colors.white70),
+                textAlign: TextAlign.center,
+              ),
+              Text(
+                _averageSleepDurationFormatted,
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 18,
+                  color: Colors.white,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 16),
+              Text(
+                _displayMascotDescription,
+                style: const TextStyle(color: Colors.white70),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 32),
+              const Text(
+                "Saran",
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                _displaySuggestion,
+                style: const TextStyle(color: Colors.white70),
+              ),
+              const SizedBox(height: 24),
+              Center(
+                child: TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  style: TextButton.styleFrom(
+                    foregroundColor: Colors.white,
+                    backgroundColor: Colors.grey[700],
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 24,
+                      vertical: 12,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  child: const Text("Tutup"),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
-  // --- START: Perubahan untuk Tambah Data Tidur Manual dan API ---
-  // Fungsi baru untuk mengirim data tidur ke API
   Future<void> _saveSleepDataToApi({
     required DateTime startTime,
     required DateTime endTime,
   }) async {
-    final authService = AuthService(); // Dapatkan instance AuthService
-    final baseUrl = AuthService.getBaseUrl(); // Dapatkan base URL
-    final url = Uri.parse('$baseUrl/api/sleep-records/manual'); // Ganti dengan endpoint API Anda
+    final baseUrl = AuthService.getBaseUrl(); // baseUrl tetap static di AuthService
+    final url = Uri.parse('$baseUrl/api/sleep-records/manual');
 
-    // Dapatkan ID pengguna dari data yang sudah login
-    final userId = authService.getCurrentUser()?['id'];
+    final userId = _loggedInUserData?['id']; // Dapatkan ID pengguna
     if (userId == null) {
-      print("Error: User ID not found. Cannot save sleep data.");
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Error: ID pengguna tidak ditemukan.')),
-      );
+      print("DEBUG_FLUTTER: Error: User ID not found. Cannot save sleep data.");
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Error: ID pengguna tidak ditemukan.')),
+        );
+      }
       return;
+    }
+
+    if (mounted) {
+      setState(() {
+        _isLoading = true; // Aktifkan loading saat menyimpan
+      });
     }
 
     try {
       final response = await http.post(
         url,
-        headers: {
-          'Content-Type': 'application/json; charset=UTF-8',
-          // Jika API Anda memerlukan otentikasi (misalnya, token JWT), tambahkan di sini:
-          // 'Authorization': 'Bearer ${authService.getAuthToken()}', // Contoh jika ada token
-        },
+        headers: _getApiHeaders(), // Gunakan helper headers tanpa token
         body: jsonEncode({
-          'userId': userId, // Sesuaikan dengan nama field di backend Anda
-          'startTime': startTime.toIso8601String(), // Format ISO 8601 adalah yang terbaik
-          'endTime': endTime.toIso8601String(),
-          // 'duration': endTime.difference(startTime).inMinutes, // Opsional: kirim juga durasi dalam menit
+          'userId': userId,
+          'startTime': startTime.toUtc().toIso8601String(), // Kirim UTC
+          'endTime': endTime.toUtc().toIso8601String(), // Kirim UTC
         }),
       ).timeout(const Duration(seconds: 10));
 
+      _logResponse('Manual Sleep API', url, response);
+
       if (response.statusCode == 200 || response.statusCode == 201) {
-        print('Sleep data saved successfully: ${response.body}');
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Data tidur berhasil disimpan!')),
-        );
-        // TODO: Refresh data di halaman Beranda atau daftar riwayat jika perlu
-      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Data tidur berhasil disimpan!')),
+          );
+        }
+        _fetchDashboardData(); // Muat ulang semua data dashboard setelah data manual ditambahkan
+      } else { // Tangani error tanpa asumsi 401/403
         final errorBody = jsonDecode(response.body);
         final errorMessage = errorBody['message'] ?? errorBody['error'] ?? 'Gagal menyimpan data tidur (${response.statusCode})';
-        print('Failed to save sleep data: $errorMessage');
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Gagal menyimpan data tidur: $errorMessage')),
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Gagal menyimpan data tidur: $errorMessage'))
         );
       }
-    } on SocketException {
-      print('Network error saving sleep data.');
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Gagal terhubung ke server. Periksa koneksi internet Anda.')),
+    } on SocketException catch (e) {
+      print('DEBUG_FLUTTER: Network error saving sleep data: SocketException - $e');
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Gagal terhubung ke server. Periksa koneksi internet Anda.'))
       );
-    } on TimeoutException {
-      print('Timeout saving sleep data.');
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Permintaan menyimpan data tidur melebihi batas waktu.')),
+    } on TimeoutException catch (e) {
+      print('DEBUG_FLUTTER: Timeout saving sleep data: TimeoutException - $e');
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Permintaan menyimpan data tidur melebihi batas waktu.'))
       );
     } catch (e) {
-      print('Unexpected error saving sleep data: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Terjadi kesalahan saat menyimpan data tidur: $e')),
+      print('DEBUG_FLUTTER: Unexpected error saving sleep data: $e');
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Terjadi kesalahan saat menyimpan data tidur: $e'))
       );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false; // Nonaktifkan loading
+        });
+      }
     }
   }
 
-
-  // Metode _showTambahDataTidurDialog yang diperbarui
   Future<void> _showTambahDataTidurDialog() async {
     DateTime? waktuMulai;
     DateTime? waktuBangun;
     final mulaiController = TextEditingController();
     final bangunController = TextEditingController();
 
-    // Import untuk DateFormat jika diperlukan untuk controller.text
-    // Pastikan import 'package:intl/intl.dart'; di atas
     final DateFormat formatter = DateFormat('dd/MM/yyyy HH:mm');
-
 
     await showDialog(
       context: context,
@@ -323,10 +641,10 @@ class _BerandaPageState extends State<BerandaPage> {
                     onTap: () async {
                       final pickedDate = await showDatePicker(
                         context: context,
-                        initialDate: waktuMulai ?? DateTime.now(), // Gunakan waktuMulai jika sudah ada
+                        initialDate: waktuMulai ?? DateTime.now(),
                         firstDate: DateTime(2020),
-                        lastDate: DateTime.now().add(const Duration(days: 1)), // Batasi hingga besok
-                        builder: (context, child) { // Kustomisasi tema date picker
+                        lastDate: DateTime.now().add(const Duration(days: 1)),
+                        builder: (context, child) {
                           return Theme(
                             data: ThemeData.dark().copyWith(
                               colorScheme: const ColorScheme.dark(
@@ -348,7 +666,7 @@ class _BerandaPageState extends State<BerandaPage> {
                         final pickedTime = await showTimePicker(
                           context: context,
                           initialTime: waktuMulai != null ? TimeOfDay.fromDateTime(waktuMulai!) : TimeOfDay.now(),
-                          builder: (context, child) { // Kustomisasi tema time picker
+                          builder: (context, child) {
                             return MediaQuery(
                               data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: true),
                               child: Theme(
@@ -405,7 +723,7 @@ class _BerandaPageState extends State<BerandaPage> {
                         initialDate: waktuBangun ?? DateTime.now(),
                         firstDate: DateTime(2020),
                         lastDate: DateTime.now().add(const Duration(days: 1)),
-                        builder: (context, child) { // Kustomisasi tema date picker
+                        builder: (context, child) {
                           return Theme(
                             data: ThemeData.dark().copyWith(
                               colorScheme: const ColorScheme.dark(
@@ -427,7 +745,7 @@ class _BerandaPageState extends State<BerandaPage> {
                         final pickedTime = await showTimePicker(
                           context: context,
                           initialTime: waktuBangun != null ? TimeOfDay.fromDateTime(waktuBangun!) : TimeOfDay.now(),
-                          builder: (context, child) { // Kustomisasi tema time picker
+                          builder: (context, child) {
                             return MediaQuery(
                               data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: true),
                               child: Theme(
@@ -476,7 +794,6 @@ class _BerandaPageState extends State<BerandaPage> {
             ElevatedButton(
               style: ElevatedButton.styleFrom(backgroundColor: TuruColors.pink),
               onPressed: () {
-                // Validasi input
                 if (waktuMulai == null || waktuBangun == null) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(content: Text('Harap lengkapi waktu mulai dan waktu bangun.')),
@@ -490,22 +807,20 @@ class _BerandaPageState extends State<BerandaPage> {
                   return;
                 }
 
-                // Panggil fungsi untuk menyimpan data ke API
                 _saveSleepDataToApi(
                   startTime: waktuMulai!,
                   endTime: waktuBangun!,
                 );
 
-                Navigator.pop(context); // Tutup dialog setelah mencoba menyimpan
+                Navigator.pop(context);
               },
-              child: const Text('Simpan', style: TextStyle(color: Colors.white)), // Tambahkan warna
+              child: const Text('Simpan', style: TextStyle(color: Colors.white)),
             ),
           ],
         );
       },
     );
   }
-  // --- END: Perubahan untuk Tambah Data Tidur Manual dan API ---
 
   @override
   Widget build(BuildContext context) {
@@ -515,18 +830,16 @@ class _BerandaPageState extends State<BerandaPage> {
 
     // --- START: Gunakan data pengguna yang sudah dimuat ---
     final String username = _loggedInUserData?['username'] ?? 'Pengguna';
-    // Anda bisa gunakan username ini di bagian UI yang relevan, contoh:
-    // Text('Selamat datang, $username!');
     // --- END: Gunakan data pengguna yang sudah dimuat ---
 
-    final displayedSleepScore = widget.sleepScore ?? 88;
-    final displayedMascot = widget.mascot ?? '😴';
-    final displayedMascotName = widget.mascotName ?? 'Koala Pemalas';
-    final displayedMascotDesc =
-        widget.mascotDescription ?? 'Kamu tidur nyenyak semalam!';
-    final displayedScores = widget.weeklyScores ?? fallbackWeeklyScores;
-    final labels = widget.dayLabels ?? fallbackDayLabels;
-    final todayIndex = now.weekday % 7;
+    // Menggunakan data dari state _display*
+    final displayedSleepScore = _displayScore;
+    final displayedMascot = _displayMascot;
+    final displayedMascotName = _displayMascotName;
+    final displayedMascotDesc = _displayMascotDescription;
+    final displayedScores = _displayWeeklyScores.isNotEmpty ? _displayWeeklyScores : fallbackWeeklyScores; // Gunakan fallback jika API kosong
+    final labels = _displayDayLabels.isNotEmpty ? _displayDayLabels : fallbackDayLabels; // Gunakan fallback jika API kosong
+    final todayIndex = _displayTodayIndex; // Gunakan dari API
 
     return Stack(
       children: [
@@ -539,258 +852,263 @@ class _BerandaPageState extends State<BerandaPage> {
         ),
         SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              const SizedBox(height: 32),
-
-              // Tombol Tidur
-              Center(
-                child: Column(
+          child: _isLoading // Tampilkan indikator loading jika data sedang dimuat
+              ? const Center(child: CircularProgressIndicator(color: TuruColors.indigo))
+              : Column(
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    ElevatedButton(
-                      onPressed: _toggleSleep,
-                      style: ElevatedButton.styleFrom(
-                        shape: const CircleBorder(),
-                        padding: const EdgeInsets.all(32),
-                        backgroundColor: TuruColors.lilac,
-                        side: const BorderSide(
-                          color: TuruColors.purple,
-                          width: 4,
-                        ),
-                      ),
-                      child: Text(
-                        isSleeping ? '😴' : '😊',
-                        style: const TextStyle(fontSize: 64),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      "Halo, $username!", // Contoh penggunaan data pengguna
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    if (sleepStartTime != null)
-                      Text(
-                        "Mulai: ${DateFormat('HH:mm').format(sleepStartTime!)}", // Format waktu mulai
-                        style: const TextStyle(color: TuruColors.textColor2),
-                      ),
-                    const SizedBox(height: 12),
-                    Text(
-                      isSleeping ? "Sedang Tidur" : "Klik tombol untuk memulai",
-                      style: const TextStyle(fontSize: 16),
-                    ),
-                  ],
-                ),
-              ),
+                    const SizedBox(height: 32),
 
-              const SizedBox(height: 48),
-
-              const _SectionTitle(title: "Data Tidur"),
-              const SizedBox(height: 8),
-
-              // This is the new data section you provided
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    sleepStartTime != null
-                        ? "Mulai: ${DateFormat('HH:mm').format(sleepStartTime!)}"
-                        : "Mulai: 22:10", // TODO: Ganti ini dengan data dari API/fallback yang lebih cerdas
-                    style: const TextStyle(color: TuruColors.textColor2),
-                  ),
-                  const SizedBox(width: 3),
-                  const Text(
-                    "|",
-                    style: TextStyle(color: TuruColors.textColor2),
-                  ),
-                  const SizedBox(width: 3),
-                  Text(
-                    isSleeping
-                        ? "Selesai: -"
-                        : sleepStartTime != null
-                            ? "Selesai: ${DateFormat('HH:mm').format(now)}"
-                            : "Selesai: 06:22", // TODO: Ganti ini dengan data dari API/fallback yang lebih cerdas
-                    style: const TextStyle(color: TuruColors.textColor2),
-                  ),
-                ],
-              ),
-
-              Text(
-                sleepStartTime != null
-                    ? _formatDuration(sleepDuration)
-                    : "8 j 12 m", // TODO: Ganti ini dengan data dari API/fallback yang lebih cerdas
-                style: const TextStyle(
-                  fontSize: 32,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-
-              const SizedBox(height: 48),
-
-              const _SectionTitle(title: "Skor Tidur"),
-              const SizedBox(height: 8),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(displayedMascot, style: const TextStyle(fontSize: 72)),
-                  const SizedBox(width: 16),
-                  Text(
-                    displayedSleepScore.toString(),
-                    style: const TextStyle(
-                      fontSize: 40,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ],
-              ),
-              Text(
-                displayedMascotName,
-                style: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 32.0),
-                child: Text(
-                  displayedMascotDesc,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(color: TuruColors.textColor2),
-                ),
-              ),
-
-              const SizedBox(height: 32),
-              ElevatedButton(
-                onPressed: _showSleepAnalysisDialog,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: TuruColors.indigo,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 12,
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  elevation: 4,
-                ),
-                child: const Text(
-                  "Analisis Tidur",
-                  style: TextStyle(color: Colors.white),
-                ),
-              ),
-              const SizedBox(height: 64),
-
-              const _SectionTitle(title: "Statistik Tidur Mingguan"),
-              const SizedBox(height: 8),
-              Text(
-                "07 Juni 2025 - ${DateFormat('dd MMMM yyyy', 'id_ID').format(now)}", // Tanggal dinamis
-                style: const TextStyle(color: TuruColors.textColor2),
-              ),
-              const SizedBox(height: 16),
-              AspectRatio(
-                aspectRatio: 1.6,
-                child: BarChart(
-                  BarChartData(
-                    titlesData: FlTitlesData(
-                      bottomTitles: AxisTitles(
-                        sideTitles: SideTitles(
-                          showTitles: true,
-                          getTitlesWidget: (value, _) {
-                            final index = value.toInt();
-                            return Column(
-                              children: [
-                                Text(
-                                  labels[index],
-                                  style: TextStyle(
-                                    color:
-                                        index == todayIndex
-                                            ? TuruColors.pink
-                                            : Colors.grey[400],
-                                    fontWeight:
-                                        index == todayIndex
-                                            ? FontWeight.bold
-                                            : FontWeight.normal,
-                                  ),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  displayedScores[index] == 0 ? '0' : displayedScores[index].toString(),
-                                  style: const TextStyle(
-                                    color: Colors.grey,
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                              ],
-                            );
-                          },
-                          reservedSize: 45,
-                        ),
-                      ),
-                      leftTitles: const AxisTitles(
-                        sideTitles: SideTitles(showTitles: false),
-                      ),
-                      rightTitles: const AxisTitles(
-                        sideTitles: SideTitles(showTitles: false),
-                      ),
-                      topTitles: const AxisTitles(
-                        sideTitles: SideTitles(showTitles: false),
-                      ),
-                    ),
-                    barGroups: List.generate(displayedScores.length, (index) {
-                      final score = displayedScores[index];
-                      final isToday = index == todayIndex;
-                      return BarChartGroupData(
-                        x: index,
-                        barRods: [
-                          BarChartRodData(
-                            toY: score == 0 ? 3 : score.toDouble(),
-                            width: 16,
-                            color: isToday ? TuruColors.purple : TuruColors.indigo,
-                            borderRadius: BorderRadius.zero,
+                    // Tombol Tidur
+                    Center(
+                      child: Column(
+                        children: [
+                          ElevatedButton(
+                            onPressed: _isButtonLoading ? null : _toggleSleep,
+                            style: ElevatedButton.styleFrom(
+                              shape: const CircleBorder(),
+                              padding: const EdgeInsets.all(32),
+                              backgroundColor: TuruColors.lilac,
+                              side: const BorderSide(
+                                color: TuruColors.purple,
+                                width: 4,
+                              ),
+                            ),
+                            child: _isButtonLoading
+                                ? const SizedBox(
+                                      width: 40,
+                                      height: 40,
+                                      child: CircularProgressIndicator(
+                                        color: Colors.white,
+                                        strokeWidth: 3,
+                                      ),
+                                    )
+                                : Text(
+                                      isSleeping ? '😴' : '😊',
+                                      style: const TextStyle(fontSize: 64),
+                                    ),
+                          ),
+                          const SizedBox(height: 12),
+                          Text(
+                            "Halo, $username!",
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          if (sleepStartTime != null && isSleeping)
+                            Text(
+                              "Mulai: ${DateFormat('HH:mm').format(sleepStartTime!)}",
+                              style: const TextStyle(color: TuruColors.textColor2),
+                            ),
+                          const SizedBox(height: 12),
+                          Text(
+                            isSleeping ? "Sedang Tidur" : "Klik tombol untuk memulai",
+                            style: const TextStyle(fontSize: 16),
                           ),
                         ],
-                      );
-                    }),
-                    gridData: const FlGridData(show: false),
-                    borderData: FlBorderData(show: false),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 24),
-
-              ElevatedButton(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const SleepHistoryPage(),
+                      ),
                     ),
-                  );
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: TuruColors.indigo,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 12,
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  elevation: 4,
-                ),
-                child: const Text(
-                  "Lihat Riwayat Tidur",
-                  style: TextStyle(fontSize: 16, color: Colors.white),
-                ),
-              ),
 
-              const SizedBox(height: 100),
-            ],
-          ),
+                    const SizedBox(height: 48),
+
+                    const _SectionTitle(title: "Data Tidur"),
+                    const SizedBox(height: 8),
+
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          "Mulai: $_lastSleepStartTimeFormatted",
+                          style: const TextStyle(color: TuruColors.textColor2),
+                        ),
+                        const SizedBox(width: 3),
+                        const Text(
+                          "|",
+                          style: TextStyle(color: TuruColors.textColor2),
+                        ),
+                        const SizedBox(width: 3),
+                        Text(
+                          "Selesai: $_lastSleepEndTimeFormatted",
+                          style: const TextStyle(color: TuruColors.textColor2),
+                        ),
+                      ],
+                    ),
+
+                    Text(
+                      _lastSleepDurationFormatted,
+                      style: const TextStyle(
+                        fontSize: 32,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+
+                    const SizedBox(height: 48),
+
+                    const _SectionTitle(title: "Skor Tidur"),
+                    const SizedBox(height: 8),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(_displayMascot, style: const TextStyle(fontSize: 72)),
+                        const SizedBox(width: 16),
+                        Text(
+                          _displayScore.toString(),
+                          style: const TextStyle(
+                            fontSize: 40,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                    Text(
+                      _displayMascotName,
+                      style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 32.0),
+                      child: Text(
+                        _displayMascotDescription,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(color: TuruColors.textColor2),
+                      ),
+                    ),
+
+                    const SizedBox(height: 32),
+                    ElevatedButton(
+                      onPressed: _showSleepAnalysisDialog,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: TuruColors.indigo,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 12,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        elevation: 4,
+                      ),
+                      child: const Text(
+                        "Analisis Tidur",
+                        style: TextStyle(color: Colors.white),
+                      ),
+                    ),
+                    const SizedBox(height: 64),
+
+                    const _SectionTitle(title: "Statistik Tidur Mingguan"),
+                    const SizedBox(height: 8),
+                    Text(
+                      _weeklyDateRange, // Menggunakan rentang tanggal dari API
+                      style: const TextStyle(color: TuruColors.textColor2),
+                    ),
+                    const SizedBox(height: 16),
+                    AspectRatio(
+                      aspectRatio: 1.6,
+                      child: _displayWeeklyScores.isNotEmpty
+                          ? BarChart(
+                                BarChartData(
+                                  titlesData: FlTitlesData(
+                                    bottomTitles: AxisTitles(
+                                      sideTitles: SideTitles(
+                                        showTitles: true,
+                                        getTitlesWidget: (value, _) {
+                                          final index = value.toInt();
+                                          final labelText = index < _displayDayLabels.length ? _displayDayLabels[index] : '';
+                                          final scoreText = index < _displayWeeklyScores.length ? _displayWeeklyScores[index].toString() : '0';
+
+                                          return Column(
+                                            children: [
+                                              Text(
+                                                labelText,
+                                                style: TextStyle(
+                                                  color: index == _displayTodayIndex
+                                                      ? TuruColors.pink
+                                                      : Colors.grey[400],
+                                                  fontWeight: index == _displayTodayIndex
+                                                      ? FontWeight.bold
+                                                      : FontWeight.normal,
+                                                ),
+                                              ),
+                                              const SizedBox(height: 4),
+                                              Text(
+                                                scoreText == '0' ? '0' : scoreText,
+                                                style: const TextStyle(
+                                                  color: Colors.grey,
+                                                  fontSize: 12,
+                                                  fontWeight: FontWeight.w500,
+                                                ),
+                                              ),
+                                            ],
+                                          );
+                                        },
+                                        reservedSize: 45,
+                                      ),
+                                    ),
+                                    leftTitles: const AxisTitles(
+                                      sideTitles: SideTitles(showTitles: false),
+                                    ),
+                                    rightTitles: const AxisTitles(
+                                      sideTitles: SideTitles(showTitles: false),
+                                    ),
+                                    topTitles: const AxisTitles(
+                                      sideTitles: SideTitles(showTitles: false),
+                                    ),
+                                  ),
+                                  barGroups: List.generate(displayedScores.length, (index) {
+                                    final score = displayedScores[index];
+                                    final isToday = index == _displayTodayIndex;
+                                    return BarChartGroupData(
+                                      x: index,
+                                      barRods: [
+                                        BarChartRodData(
+                                          toY: score == 0 ? 3 : score.toDouble(),
+                                          width: 16,
+                                          color: isToday ? TuruColors.purple : TuruColors.indigo,
+                                          borderRadius: BorderRadius.zero,
+                                        ),
+                                      ],
+                                    );
+                                  }),
+                                  gridData: const FlGridData(show: false),
+                                  borderData: FlBorderData(show: false),
+                                ),
+                              )
+                          : const Center(child: Text("Tidak ada data mingguan.", style: TextStyle(color: Colors.white70))),
+                    ),
+                    const SizedBox(height: 24),
+
+                    ElevatedButton(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const HistorySleepPage(scores: [],),
+                          ),
+                        );
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: TuruColors.indigo,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 12,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        elevation: 4,
+                      ),
+                      child: const Text(
+                        "Lihat Riwayat Tidur",
+                        style: TextStyle(fontSize: 16, color: Colors.white),
+                      ),
+                    ),
+
+                    const SizedBox(height: 100),
+                  ],
+                ),
         ),
 
         // Floating Action Button
