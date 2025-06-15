@@ -14,8 +14,8 @@ import 'pages/login.dart';
 import 'pages/detail_profil.dart';
 import 'pages/edit_profil.dart';
 import 'pages/edit_password.dart';
-// Ini import untuk file HistorySleepPage Anda
-import 'pages/sleep_history_page.dart'; // Pastikan import ini menunjuk ke file yang benar
+// Ini import untuk file SleepHistoryPage Anda (sudah benar, akan menunjuk ke kelas SleepHistoryPage)
+import 'pages/sleep_history_page.dart'; // Import ini sekarang menunjuk ke kelas yang benar
 import 'pages/edit_foto.dart';
 
 import 'services/notification_service.dart';
@@ -37,13 +37,17 @@ class TuruColors {
   static const Color lilac = Color(0xFF2B194F);
   static const Color indigo = Color(0xFF514FC2);
   static const Color biscay = Color(0xFF18306D);
-  static const Color darkblue = Color(0xFF0D1A36);
+  static const Color darkblue = Color(0xFF0D1A36); // Warna darkblue yang sudah ada
   static const Color blue = Color(0xFF35A4DA);
-  static const Color purple = Color(0xFF8C4FC2);
-  static const Color pink = Color(0xFFDA5798);
+  static const Color purple = Color(0xFF8C4FC2); // Warna ungu
+  static const Color pink = Color(0xFFDA5798);   // Warna pink
   static const Color backdrop = Color(0xFF0C0E24);
   static const Color button = Color(0xFF007BFF);
   static const Color grey = Color(0xFFB0BEC5);
+
+  // === TAMBAHKAN DEFINISI WARNA INI ===
+  // Menggunakan nilai yang Anda miliki dari kode sleep_history_page sebelumnya
+  static const Color cardBackground = Color(0xFF1E1E1E); 
 }
 
 class TuruApp extends StatelessWidget {
@@ -80,10 +84,9 @@ class TuruApp extends StatelessWidget {
         '/edit_foto': (context) => const EditFotoPage(),
         '/edit_profil': (context) => const EditProfilPage(),
         '/edit_password': (context) => const EditPasswordPage(),
-        // --- PERBAIKAN DI SINI ---
+        // === PERBAIKAN DI SINI: Gunakan SleepHistoryPage dan tanpa argumen scores ===
         '/history': (context) {
-          // Ganti 'SleepHistoryPage' menjadi 'HistorySleepPage'
-          return const HistorySleepPage(scores: [88, 90, 75, 80, 92, 85, 70]);
+          return const SleepHistoryPage(); // Panggil SleepHistoryPage tanpa argumen data
         },
         // --- AKHIR PERBAIKAN ---
       },
